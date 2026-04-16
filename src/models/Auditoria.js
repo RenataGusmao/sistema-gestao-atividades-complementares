@@ -4,37 +4,81 @@ const AuditoriaSchema = new mongoose.Schema({
   usuarioId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',
-    default: null,
+    required: [true, 'O usuário responsável pela ação é obrigatório.'],
     index: true
-  },
-  tabelaAfetada: {
-    type: String,
-    required: true,
-    trim: true,
-    maxlength: 100
   },
   acao: {
     type: String,
-    required: true,
-    enum: ['INSERT', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'APROVACAO', 'REPROVACAO']
+    required: [true, 'A ação realizada é obrigatória.'],
+    trim: true,
+    enum: [
+      'CRIACAO',
+      'ATUALIZACAO',
+      'EXCLUSAO',
+      'LOGIN',
+      'LOGOUT',
+      'APROVACAO',
+      'REPROVACAO',
+      'AJUSTE_CARGA_HORARIA',
+      'VINCULO_CURSO',
+      'ALTERACAO_REGRA'
+    ]
   },
-  idRegistroAfetado: {
+  entidade: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'A entidade afetada é obrigatória.'],
+    trim: true,
+    enum: [
+      'Usuario',
+      'Aluno',
+      'Curso',
+      'CategoriaAtividade',
+      'RegraCargaHoraria',
+      'Atividade',
+      'ConfiguracaoSistema'
+    ],
+    index: true
   },
-  descricaoAcao: {
+  registroId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: [true, 'O identificador do registro afetado é obrigatório.'],
+    index: true
+  },
+  descricao: {
     type: String,
+    required: [true, 'A descrição da auditoria é obrigatória.'],
+    trim: true,
+    maxlength: 1000
+  },
+  dadosAnteriores: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  dadosNovos: {
+    type: mongoose.Schema.Types.Mixed,
     default: null
   },
   ipOrigem: {
     type: String,
-    default: null,
+    trim: true,
     maxlength: 45
+  },
+  userAgent: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
+  dataEvento: {
+    type: Date,
+    default: Date.now,
+    index: true
   }
 }, {
-  timestamps: { createdAt: 'dataEvento', updatedAt: false },
   versionKey: false
 });
+
+AuditoriaSchema.index({ entidade: 1, registroId: 1, dataEvento: -1 });
+AuditoriaSchema.index({ usuarioId: 1, dataEvento: -1 });
+AuditoriaSchema.index({ acao: 1, dataEvento: -1 });
 
 module.exports = mongoose.model('Auditoria', AuditoriaSchema);
