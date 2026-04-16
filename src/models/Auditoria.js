@@ -35,7 +35,8 @@ const AuditoriaSchema = new mongoose.Schema({
       'CategoriaAtividade',
       'RegraCargaHoraria',
       'Atividade',
-      'ConfiguracaoSistema'
+      'ConfiguracaoSistema',
+      'StatusAtividade'
     ],
     index: true
   },
