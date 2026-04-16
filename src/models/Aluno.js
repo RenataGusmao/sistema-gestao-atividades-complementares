@@ -57,7 +57,6 @@ const AlunoSchema = new mongoose.Schema({
   versionKey: false
 });
 
-AlunoSchema.index({ matricula: 1 }, { unique: true });
 AlunoSchema.index({ email: 1 });
 
 module.exports = mongoose.model('Aluno', AlunoSchema);

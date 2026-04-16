@@ -36,7 +36,4 @@ const CursoSchema = new mongoose.Schema({
   versionKey: false
 });
 
-CursoSchema.index({ codigo: 1 }, { unique: true });
-CursoSchema.index({ nome: 1 }, { unique: true });
-
 module.exports = mongoose.model('Curso', CursoSchema);

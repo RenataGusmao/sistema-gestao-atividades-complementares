@@ -51,7 +51,6 @@ const ConfiguracaoSistemaSchema = new mongoose.Schema({
   versionKey: false
 });
 
-ConfiguracaoSistemaSchema.index({ chave: 1 }, { unique: true });
 ConfiguracaoSistemaSchema.index({ categoria: 1, ativo: 1 });
 
 module.exports = mongoose.model('ConfiguracaoSistema', ConfiguracaoSistemaSchema);

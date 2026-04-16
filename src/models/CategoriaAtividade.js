@@ -37,8 +37,6 @@ const CategoriaAtividadeSchema = new mongoose.Schema({
   versionKey: false
 });
 
-CategoriaAtividadeSchema.index({ nome: 1 }, { unique: true });
-CategoriaAtividadeSchema.index({ codigo: 1 }, { unique: true });
 CategoriaAtividadeSchema.index({ areaParametro: 1 });
 
 module.exports = mongoose.model('CategoriaAtividade', CategoriaAtividadeSchema);

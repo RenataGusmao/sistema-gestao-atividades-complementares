@@ -68,9 +68,6 @@ const UsuarioSchema = new mongoose.Schema({
   versionKey: false
 });
 
-UsuarioSchema.index({ codigoUsuario: 1 }, { unique: true });
-UsuarioSchema.index({ email: 1 }, { unique: true });
-
 UsuarioSchema.pre('save', async function (next) {
   if (!this.isModified('senhaHash')) return next();
 
