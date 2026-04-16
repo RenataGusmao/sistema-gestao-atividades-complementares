@@ -1,138 +1,158 @@
 const mongoose = require('mongoose');
 
-const AnexoSchema = new mongoose.Schema({
+const historicoValidacaoSchema = new mongoose.Schema({
+  statusAnterior: {
+    type: String,
+    enum: ['Enviada', 'Em análise', 'Aprovada', 'Reprovada'],
+    required: true
+  },
+  statusNovo: {
+    type: String,
+    enum: ['Enviada', 'Em análise', 'Aprovada', 'Reprovada'],
+    required: true
+  },
+  usuarioId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
+    required: true
+  },
+  dataAcao: {
+    type: Date,
+    default: Date.now
+  },
+  decisao: {
+    type: String,
+    enum: ['Aprovação', 'Reprovação', 'Atualização'],
+    required: true
+  },
+  justificativa: {
+    type: String,
+    trim: true,
+    maxlength: 1000
+  },
+  cargaHorariaValidada: {
+    type: Number,
+    min: 0
+  }
+}, { _id: false });
+
+const anexoSchema = new mongoose.Schema({
   nomeArquivo: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 255
+    trim: true
   },
-  caminhoArquivo: {
+  urlArquivo: {
     type: String,
     required: true,
-    trim: true,
-    maxlength: 500
+    trim: true
   },
   tipoArquivo: {
     type: String,
     required: true,
-    enum: ['pdf', 'jpg', 'jpeg', 'png']
+    enum: ['application/pdf', 'image/jpeg', 'image/png']
   },
   tamanhoBytes: {
     type: Number,
     required: true,
-    min: 1
+    max: 10 * 1024 * 1024
   },
   dataUpload: {
     type: Date,
     default: Date.now
   }
-}, { _id: true });
-
-const HistoricoStatusSchema = new mongoose.Schema({
-  statusAnteriorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'StatusAtividade',
-    default: null
-  },
-  statusNovoId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'StatusAtividade',
-    required: true
-  },
-  usuarioResponsavelId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
-    default: null
-  },
-  observacao: {
-    type: String,
-    default: null
-  },
-  dataAlteracao: {
-    type: Date,
-    default: Date.now
-  }
-}, { _id: true });
+}, { _id: false });
 
 const AtividadeSchema = new mongoose.Schema({
   alunoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Aluno',
-    required: true,
+    required: [true, 'O aluno é obrigatório.'],
     index: true
   },
   cursoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Curso',
-    required: true,
+    required: [true, 'O curso é obrigatório.'],
     index: true
   },
   categoriaId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'CategoriaAtividade',
-    required: true,
-    index: true
-  },
-  statusId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'StatusAtividade',
-    required: true,
+    required: [true, 'A categoria é obrigatória.'],
     index: true
   },
   titulo: {
     type: String,
-    required: [true, 'Título é obrigatório.'],
+    required: [true, 'O título é obrigatório.'],
     trim: true,
     maxlength: 200
   },
   descricao: {
     type: String,
-    required: [true, 'Descrição é obrigatória.'],
-    trim: true
+    required: [true, 'A descrição é obrigatória.'],
+    trim: true,
+    maxlength: 2000
   },
   dataRealizacao: {
     type: Date,
-    required: [true, 'Data de realização é obrigatória.']
+    required: [true, 'A data de realização é obrigatória.']
   },
   cargaHorariaInformada: {
     type: Number,
-    required: [true, 'Carga horária informada é obrigatória.'],
-    min: 0
+    required: [true, 'A carga horária informada é obrigatória.'],
+    min: [0, 'A carga horária informada não pode ser negativa.']
   },
   cargaHorariaValidada: {
     type: Number,
-    default: null,
-    min: 0
+    default: 0,
+    min: [0, 'A carga horária validada não pode ser negativa.']
+  },
+  status: {
+    type: String,
+    enum: ['Enviada', 'Em análise', 'Aprovada', 'Reprovada'],
+    default: 'Enviada',
+    required: true,
+    index: true
   },
   justificativaReprovacao: {
     type: String,
-    default: null
+    trim: true,
+    maxlength: 1000
   },
   observacaoCoordenador: {
     type: String,
-    default: null
-  },
-  coordenadorAvaliadorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Usuario',
-    default: null
+    trim: true,
+    maxlength: 1000
   },
   anexos: {
-    type: [AnexoSchema],
-    default: []
+    type: [anexoSchema],
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) && value.length > 0;
+      },
+      message: 'É obrigatório anexar ao menos um comprovante.'
+    }
   },
-  historicoStatus: {
-    type: [HistoricoStatusSchema],
+  historicoValidacoes: {
+    type: [historicoValidacaoSchema],
     default: []
   }
 }, {
-  timestamps: { createdAt: 'dataSubmissao', updatedAt: 'dataUltimaAtualizacao' },
+  timestamps: { createdAt: 'dataCriacao', updatedAt: 'dataAtualizacao' },
   versionKey: false
 });
 
-AtividadeSchema.index({ alunoId: 1, cursoId: 1 });
-AtividadeSchema.index({ statusId: 1 });
-AtividadeSchema.index({ dataSubmissao: -1 });
+AtividadeSchema.pre('save', function (next) {
+  if (this.status === 'Reprovada' && !this.justificativaReprovacao) {
+    return next(new Error('A justificativa de reprovação é obrigatória.'));
+  }
+
+  if (this.cargaHorariaValidada > this.cargaHorariaInformada) {
+    return next(new Error('A carga horária validada não pode ser maior que a carga horária informada.'));
+  }
+
+  next();
+});
 
 module.exports = mongoose.model('Atividade', AtividadeSchema);
