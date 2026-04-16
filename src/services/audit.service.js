@@ -1,14 +1,29 @@
 const Auditoria = require('../models/Auditoria');
 
-async function registrarAuditoria({ usuarioId = null, tabelaAfetada, acao, idRegistroAfetado, descricaoAcao = null, ipOrigem = null }) {
-  await Auditoria.create({
+async function registrarAuditoria({
+  usuarioId,
+  acao,
+  entidade,
+  registroId,
+  descricao,
+  dadosAnteriores = null,
+  dadosNovos = null,
+  ipOrigem = null,
+  userAgent = null
+}) {
+  return Auditoria.create({
     usuarioId,
-    tabelaAfetada,
     acao,
-    idRegistroAfetado,
-    descricaoAcao,
-    ipOrigem
+    entidade,
+    registroId,
+    descricao,
+    dadosAnteriores,
+    dadosNovos,
+    ipOrigem,
+    userAgent
   });
 }
 
-module.exports = { registrarAuditoria };
+module.exports = {
+  registrarAuditoria
+};
