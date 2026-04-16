@@ -12,6 +12,10 @@ const cursoRoutes = require('./routes/curso.routes');
 const alunoRoutes = require('./routes/aluno.routes');
 const atividadeRoutes = require('./routes/atividade.routes');
 const configuracaoRoutes = require('./routes/configuracao.routes');
+const categoriaRoutes = require('./routes/categoria.routes');
+const regraCargaHorariaRoutes = require('./routes/regraCargaHoraria.routes');
+const statusAtividadeRoutes = require('./routes/statusAtividade.routes');
+
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -53,6 +57,9 @@ app.use('/api/cursos', cursoRoutes);
 app.use('/api/alunos', alunoRoutes);
 app.use('/api/atividades', atividadeRoutes);
 app.use('/api/configuracoes', configuracaoRoutes);
+app.use('/api/categorias', categoriaRoutes);
+app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
+app.use('/api/status-atividade', statusAtividadeRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada.' });

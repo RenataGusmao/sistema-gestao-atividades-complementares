@@ -27,7 +27,6 @@ const StatusAtividadeSchema = new mongoose.Schema({
   versionKey: false
 });
 
-StatusAtividadeSchema.index({ nome: 1 }, { unique: true });
 StatusAtividadeSchema.index({ ordem: 1 }, { unique: true });
 
 module.exports = mongoose.model('StatusAtividade', StatusAtividadeSchema);
