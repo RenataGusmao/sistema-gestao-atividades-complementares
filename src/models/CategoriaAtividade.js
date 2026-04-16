@@ -1,23 +1,44 @@
 const mongoose = require('mongoose');
 
 const CategoriaAtividadeSchema = new mongoose.Schema({
-  nomeCategoria: {
+  nome: {
     type: String,
-    required: [true, 'Nome da categoria é obrigatório.'],
+    required: [true, 'O nome da categoria é obrigatório.'],
+    unique: true,
     trim: true,
     maxlength: 100
   },
+  codigo: {
+    type: String,
+    required: [true, 'O código da categoria é obrigatório.'],
+    unique: true,
+    trim: true,
+    uppercase: true,
+    maxlength: 20,
+    match: [/^[A-Z0-9_]+$/, 'O código da categoria deve conter apenas letras, números e underscore.']
+  },
   descricao: {
     type: String,
-    default: null
+    trim: true,
+    maxlength: 500
   },
-  ativo: {
+  areaParametro: {
+    type: String,
+    required: [true, 'A área/parâmetro da categoria é obrigatória.'],
+    trim: true,
+    maxlength: 100
+  },
+  ativa: {
     type: Boolean,
     default: true
   }
 }, {
-  timestamps: false,
+  timestamps: { createdAt: 'dataCriacao', updatedAt: 'dataAtualizacao' },
   versionKey: false
 });
+
+CategoriaAtividadeSchema.index({ nome: 1 }, { unique: true });
+CategoriaAtividadeSchema.index({ codigo: 1 }, { unique: true });
+CategoriaAtividadeSchema.index({ areaParametro: 1 });
 
 module.exports = mongoose.model('CategoriaAtividade', CategoriaAtividadeSchema);
