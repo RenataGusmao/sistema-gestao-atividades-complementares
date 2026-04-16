@@ -1,14 +1,10 @@
 const mongoose = require('mongoose');
 
-const CursoVinculoSchema = new mongoose.Schema({
+const CursoVinculadoSchema = new mongoose.Schema({
   cursoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Curso',
     required: true
-  },
-  matriculaAtiva: {
-    type: Boolean,
-    default: true
   },
   dataVinculo: {
     type: Date,
@@ -19,14 +15,13 @@ const CursoVinculoSchema = new mongoose.Schema({
 const AlunoSchema = new mongoose.Schema({
   nome: {
     type: String,
-    required: [true, 'Nome é obrigatório.'],
+    required: [true, 'O nome do aluno é obrigatório.'],
     trim: true,
     maxlength: 150
   },
   email: {
     type: String,
-    required: [true, 'E-mail é obrigatório.'],
-    unique: true,
+    required: [true, 'O e-mail é obrigatório.'],
     lowercase: true,
     trim: true,
     maxlength: 150,
@@ -34,29 +29,35 @@ const AlunoSchema = new mongoose.Schema({
   },
   matricula: {
     type: String,
-    required: [true, 'Matrícula é obrigatória.'],
+    required: [true, 'A matrícula é obrigatória.'],
     unique: true,
     trim: true,
-    maxlength: 50
+    uppercase: true,
+    maxlength: 30
   },
-  ativo: {
+  cursos: {
+    type: [CursoVinculadoSchema],
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) && value.length > 0;
+      },
+      message: 'O aluno deve estar vinculado a pelo menos um curso.'
+    }
+  },
+  matriculaAtiva: {
     type: Boolean,
     default: true
   },
-  dataColacaoPrevista: {
+  dataPrevistaColacao: {
     type: Date,
-    default: null
-  },
-  cursos: {
-    type: [CursoVinculoSchema],
-    default: []
+    required: [true, 'A data prevista de colação é obrigatória.']
   }
 }, {
-  timestamps: { createdAt: 'dataCriacao', updatedAt: false },
+  timestamps: { createdAt: 'dataCriacao', updatedAt: 'dataAtualizacao' },
   versionKey: false
 });
 
-AlunoSchema.index({ email: 1 }, { unique: true });
 AlunoSchema.index({ matricula: 1 }, { unique: true });
+AlunoSchema.index({ email: 1 });
 
 module.exports = mongoose.model('Aluno', AlunoSchema);
