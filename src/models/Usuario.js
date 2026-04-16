@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const perfisValidos = ['aluno', 'coordenador', 'administrador'];
+const perfisValidos = ['administrador', 'coordenador'];
 
 const CursoCoordenadoSchema = new mongoose.Schema({
   cursoId: {
@@ -16,15 +16,24 @@ const CursoCoordenadoSchema = new mongoose.Schema({
 }, { _id: false });
 
 const UsuarioSchema = new mongoose.Schema({
+  codigoUsuario: {
+    type: String,
+    required: [true, 'O código do usuário é obrigatório.'],
+    unique: true,
+    trim: true,
+    uppercase: true,
+    maxlength: 30,
+    match: [/^[A-Z0-9]+$/, 'O código do usuário deve conter apenas letras e números.']
+  },
   nome: {
     type: String,
-    required: [true, 'Nome é obrigatório.'],
+    required: [true, 'O nome é obrigatório.'],
     trim: true,
     maxlength: 150
   },
   email: {
     type: String,
-    required: [true, 'E-mail é obrigatório.'],
+    required: [true, 'O e-mail é obrigatório.'],
     unique: true,
     lowercase: true,
     trim: true,
@@ -33,13 +42,18 @@ const UsuarioSchema = new mongoose.Schema({
   },
   senhaHash: {
     type: String,
-    required: [true, 'Senha é obrigatória.'],
+    required: [true, 'A senha é obrigatória.'],
     select: false
   },
   perfis: {
     type: [String],
     enum: perfisValidos,
-    default: ['aluno']
+    validate: {
+      validator: function (value) {
+        return Array.isArray(value) && value.length > 0;
+      },
+      message: 'O usuário deve possuir ao menos um perfil.'
+    }
   },
   cursosCoordenados: {
     type: [CursoCoordenadoSchema],
@@ -54,13 +68,19 @@ const UsuarioSchema = new mongoose.Schema({
   versionKey: false
 });
 
+UsuarioSchema.index({ codigoUsuario: 1 }, { unique: true });
 UsuarioSchema.index({ email: 1 }, { unique: true });
 
 UsuarioSchema.pre('save', async function (next) {
   if (!this.isModified('senhaHash')) return next();
-  const rounds = Number(process.env.BCRYPT_SALT_ROUNDS || 12);
-  this.senhaHash = await bcrypt.hash(this.senhaHash, rounds);
-  next();
+
+  try {
+    const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 12);
+    this.senhaHash = await bcrypt.hash(this.senhaHash, saltRounds);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 UsuarioSchema.methods.compararSenha = function (senha) {
