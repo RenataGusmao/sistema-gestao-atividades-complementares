@@ -1,136 +1,146 @@
-# KORE - API Node.js + MongoDB + Mongoose
+🚀 # KORE - API de Gestão de Atividades Complementares
+<p align="center"> <img src="https://img.shields.io/badge/Node.js-18+-green?logo=node.js"> <img src="https://img.shields.io/badge/Express.js-Framework-lightgrey?logo=express"> <img src="https://img.shields.io/badge/MongoDB-Database-green?logo=mongodb"> <img src="https://img.shields.io/badge/Mongoose-ODM-red"> <img src="https://img.shields.io/badge/JWT-Autenticação-blue"> <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow"> </p>
+📌 Sobre o Projeto
 
-Projeto backend adaptado da lógica do banco relacional enviado para o KORE, mas modelado para **MongoDB** com **Mongoose**, priorizando segurança, validação e rastreabilidade.
+O KORE é uma API backend desenvolvida em Node.js + Express + MongoDB, com foco na gestão de atividades complementares no ambiente acadêmico.
 
-## O que foi preservado da lógica original
+O sistema implementa o fluxo completo de submissão, validação e auditoria, garantindo controle, rastreabilidade e aplicação de regras de negócio.
 
-A estrutura considera as entidades e regras do script SQL original:
-- usuários e perfis
-- cursos
-- alunos e vínculo com curso
-- categorias de atividade
-- regras de carga horária por curso/categoria
-- status de atividade
-- atividades complementares
-- anexos
-- histórico de status
-- auditoria obrigatória
-- configurações do sistema
+🎯 Objetivo
 
-## Principais decisões de modelagem MongoDB
+Substituir processos manuais e descentralizados por uma solução estruturada que permita:
 
-### Coleções principais
-- `usuarios`
-- `cursos`
-- `alunos`
-- `categoriasatividades`
-- `regrascargahorarias`
-- `statusatividades`
-- `atividades`
-- `auditorias`
-- `configuracaosistemas`
+📥 Submissão de atividades
+✅ Validação por coordenadores
+📊 Controle de carga horária
+🔎 Rastreamento de decisões
+🔐 Segurança e integridade dos dados
+🧠 Modelo de Domínio
 
-### Embedding e referências
-- `anexos` e `historicoStatus` foram embutidos em `Atividade`
-- `Usuario`, `Curso`, `Aluno`, `CategoriaAtividade`, `StatusAtividade` permanecem referenciados por `ObjectId`
-- `Auditoria` ficou em coleção separada para trilha de auditoria e segurança
+Baseado em um modelo relacional (SQL), adaptado para MongoDB:
 
-## Segurança implementada
+👤 Usuários (perfis: administrador, coordenador)
+🎓 Cursos
+👨‍🎓 Alunos
+📂 Categorias de atividade
+📏 Regras de carga horária
+📄 Atividades complementares
+📎 Anexos
+📜 Histórico de validações
+🔍 Auditoria
+⚙️ Configurações
+🗂️ Estrutura do Banco (MongoDB)
+Coleção	Descrição
+usuarios	Usuários do sistema
+cursos	Cursos acadêmicos
+alunos	Alunos vinculados a cursos
+categoriaatividades	Tipos de atividades
+regracargahorarias	Regras por curso/categoria
+statusatividades	Status possíveis
+atividades	Atividades submetidas
+auditorias	Log de ações
+configuracaosistemas	Parâmetros do sistema
+⚙️ Decisões Técnicas
+📌 Embedding
+anexos dentro de Atividade
+historicoValidacoes dentro de Atividade
+🔗 Referências (ObjectId)
+Usuário, Curso, Aluno, Categoria
+🔍 Auditoria
+Separada → rastreabilidade completa
+🔐 Segurança
+🛡️ Helmet
+🌐 CORS
+🚫 Rate Limit
+🔒 Mongo Sanitize
+🔑 JWT Authentication
+🔐 Bcrypt (hash de senha)
+👥 Controle por perfil
+📎 Validação de arquivos
+🧾 Auditoria obrigatória
+🔄 Fluxo do Sistema
+📊 Regras de Negócio
 
-- `helmet`
-- `cors`
-- `express-rate-limit`
-- `express-mongo-sanitize`
-- hash de senha com `bcryptjs`
-- autenticação com `JWT`
-- autorização por perfil (`aluno`, `coordenador`, `administrador`)
-- validação de upload por extensão e tamanho
-- trilha de auditoria para cadastro, login, atualização, aprovação e reprovação
+✔ Atividade deve conter:
 
-## Como rodar
+título, descrição, data
+categoria
+carga horária
+anexo obrigatório
 
-### 1. Instalar dependências
-```bash
+✔ Validação obrigatória por coordenador
+✔ Reprovação exige justificativa
+✔ Limite de carga por:
+
+categoria
+semestre
+
+✔ Auditoria obrigatória
+✔ Controle por perfil
+
+🚀 Como Executar
+1. Instalar dependências
 npm install
-```
-
-### 2. Criar arquivo `.env`
-Copie `.env.example` para `.env` e ajuste:
-```env
+2. Configurar .env
 PORT=3000
 NODE_ENV=development
 MONGODB_URI=mongodb://127.0.0.1:27017/kore
-JWT_SECRET=troque_esta_chave_por_uma_bem_forte
+JWT_SECRET=sua_chave_super_secreta
 JWT_EXPIRES_IN=1d
 BCRYPT_SALT_ROUNDS=12
 MAX_FILE_SIZE_BYTES=5242880
 ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png
 CORS_ORIGIN=http://localhost:5173
-```
-
-### 3. Executar seed inicial
-```bash
+3. Rodar seed
 npm run seed
-```
-
-### 4. Subir a API
-```bash
+4. Subir API
 npm run dev
-```
-ou
-```bash
-npm start
-```
-
-## Credenciais seed
-- Admin: `admin@kore.local` / `Admin@123`
-- Coordenador: `coordenador@kore.local` / `Coord@123`
-
-## Rotas principais
-
-### Autenticação
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-
-### Usuários
-- `GET /api/usuarios`
-- `GET /api/usuarios/:id`
-- `PATCH /api/usuarios/:id`
-
-### Cursos
-- `GET /api/cursos`
-- `POST /api/cursos`
-- `PATCH /api/cursos/:id`
-
-### Alunos
-- `GET /api/alunos`
-- `POST /api/alunos`
-- `GET /api/alunos/:id`
-
-### Atividades
-- `GET /api/atividades`
-- `POST /api/atividades`
-- `PATCH /api/atividades/:id/status`
-
-### Configurações
-- `GET /api/configuracoes`
-- `POST /api/configuracoes`
-
-## Exemplo de login
-```bash
+🔑 Credenciais
+Perfil	Email	Senha
+Admin	admin@kore.com
+	123456
+📡 Rotas Principais
+🔐 Auth
+POST /api/auth/login
+🎓 Cursos
+GET /api/cursos
+POST /api/cursos
+👨‍🎓 Alunos
+GET /api/alunos
+POST /api/alunos
+📂 Categorias
+GET /api/categorias
+POST /api/categorias
+📏 Regras
+GET /api/regras-carga-horaria
+POST /api/regras-carga-horaria
+📄 Atividades
+GET /api/atividades
+POST /api/atividades
+PATCH /api/atividades/:id/status
+🧪 Exemplo de Login
 curl --request POST \
   --url http://localhost:3000/api/auth/login \
   --header 'Content-Type: application/json' \
   --data '{
-    "email": "admin@kore.local",
-    "senha": "Admin@123"
+    "email": "admin@kore.com",
+    "senha": "123456"
   }'
-```
+📌 Observações
+Modelo baseado em SQL original (referência de domínio)
+Adaptado para MongoDB
+Preparado para:
+📱 Mobile (aluno)
+🌐 PWA (coordenação)
+📊 Dashboards
+🧠 Diferencial
 
-## Exemplo de criação de atividade com anexos
-Use `multipart/form-data`, campo `anexos`.
+O KORE implementa:
 
-## Observações importantes
-- O arquivo `Script_Create_SQL.sql` foi mantido no projeto para rastrear a lógica de origem.
-- Como o destino final é MongoDB, o script SQL serve como base de domínio e não como mecanismo de persistência.
-- O projeto foi preparado para crescer com novos módulos, validações e integração com frontend/PWA.
+✔ regras de negócio reais
+✔ fluxo acadêmico completo
+✔ auditoria e rastreabilidade
+✔ controle por perfil
+✔ validação contextual
+
+👉 Não é apenas CRUD — é um sistema orientado a domínio.
