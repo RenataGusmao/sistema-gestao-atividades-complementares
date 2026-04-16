@@ -82,6 +82,12 @@ const AtividadeSchema = new mongoose.Schema({
     required: [true, 'A categoria é obrigatória.'],
     index: true
   },
+  coordenadorResponsavelId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
+    default: null,
+    index: true
+  },
   titulo: {
     type: String,
     required: [true, 'O título é obrigatório.'],
