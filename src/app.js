@@ -6,6 +6,10 @@ const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
+// 🔥 Swagger
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
+
 const authRoutes = require('./routes/auth.routes');
 const usuarioRoutes = require('./routes/usuario.routes');
 const cursoRoutes = require('./routes/curso.routes');
@@ -27,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// 🔥 Rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -45,12 +50,15 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth', authLimiter);
 
+// arquivos
 app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
+// health
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'kore-mongo-api' });
 });
 
+// 🔥 ROTAS
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/cursos', cursoRoutes);
@@ -61,10 +69,15 @@ app.use('/api/categorias', categoriaRoutes);
 app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
 
+// 🔥 SWAGGER (ANTES DO 404)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// 404
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada.' });
 });
 
+// error handler
 app.use(errorHandler);
 
 module.exports = app;
