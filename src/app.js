@@ -16,6 +16,9 @@ const categoriaRoutes = require('./routes/categoria.routes');
 const regraCargaHorariaRoutes = require('./routes/regraCargaHoraria.routes');
 const statusAtividadeRoutes = require('./routes/statusAtividade.routes');
 
+const certificadoRoutes = require('./routes/certificado.routes');
+
+
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -27,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 🔥 Rate limit
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -54,7 +57,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'kore-mongo-api' });
 });
 
-// 🔥 ROTAS
+// ROTAS
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/cursos', cursoRoutes);
@@ -64,6 +67,8 @@ app.use('/api/configuracoes', configuracaoRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
+
+app.use('/api/certificados', certificadoRoutes);
 
 // 404
 app.use((req, res) => {
