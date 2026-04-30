@@ -1,4 +1,4 @@
-const Certificado = require('../models/certificado');
+const Certificado = require('../models/certificado.model');
 const AppError = require('../utils/AppError');
 
 
