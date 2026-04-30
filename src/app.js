@@ -27,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// 🔥 Rate limit
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -45,12 +46,15 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth', authLimiter);
 
+// arquivos
 app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
+// health
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'kore-mongo-api' });
 });
 
+// 🔥 ROTAS
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/cursos', cursoRoutes);
@@ -61,10 +65,12 @@ app.use('/api/categorias', categoriaRoutes);
 app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
 
+// 404
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada.' });
 });
 
+// error handler
 app.use(errorHandler);
 
 module.exports = app;

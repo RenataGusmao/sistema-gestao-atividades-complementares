@@ -3,7 +3,16 @@ const { registrarAuditoria } = require('../services/audit.service');
 
 async function criar(req, res) {
   try {
-    const categoria = await CategoriaAtividade.create(req.body);
+    const { curso, ...resto } = req.body;
+
+    if (!curso) {
+      return res.status(400).json({ message: 'O curso é obrigatório.' });
+    }
+
+    const categoria = await CategoriaAtividade.create({
+      ...resto,
+      curso
+    });
 
     if (req.user?._id) {
       await registrarAuditoria({
@@ -43,10 +52,24 @@ async function criar(req, res) {
 async function listar(req, res) {
   try {
     const filtro = {};
-    if (req.query.ativa !== undefined) filtro.ativa = req.query.ativa === 'true';
-    if (req.query.areaParametro) filtro.areaParametro = req.query.areaParametro;
 
-    const categorias = await CategoriaAtividade.find(filtro).sort({ nome: 1 });
+    if (req.query.ativa !== undefined) {
+      filtro.ativa = req.query.ativa === 'true';
+    }
+
+    if (req.query.areaParametro) {
+      filtro.areaParametro = req.query.areaParametro;
+    }
+
+    if (req.query.curso) {
+      filtro.curso = req.query.curso;
+    }
+
+    const categorias = await CategoriaAtividade
+      .find(filtro)
+      .populate('curso')
+      .sort({ nome: 1 });
+
     return res.status(200).json(categorias);
   } catch (error) {
     console.error(error);
@@ -56,7 +79,9 @@ async function listar(req, res) {
 
 async function buscarPorId(req, res) {
   try {
-    const categoria = await CategoriaAtividade.findById(req.params.id);
+    const categoria = await CategoriaAtividade
+      .findById(req.params.id)
+      .populate('curso');
 
     if (!categoria) {
       return res.status(404).json({ message: 'Categoria não encontrada.' });
@@ -81,7 +106,7 @@ async function atualizar(req, res) {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    );
+    ).populate('curso');
 
     if (req.user?._id) {
       await registrarAuditoria({

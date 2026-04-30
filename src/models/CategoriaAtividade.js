@@ -4,14 +4,12 @@ const CategoriaAtividadeSchema = new mongoose.Schema({
   nome: {
     type: String,
     required: [true, 'O nome da categoria é obrigatório.'],
-    unique: true,
     trim: true,
     maxlength: 100
   },
   codigo: {
     type: String,
     required: [true, 'O código da categoria é obrigatório.'],
-    unique: true,
     trim: true,
     uppercase: true,
     maxlength: 20,
@@ -31,11 +29,27 @@ const CategoriaAtividadeSchema = new mongoose.Schema({
   ativa: {
     type: Boolean,
     default: true
+  },
+
+ 
+  curso: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Curso',
+    required: [true, 'O curso é obrigatório para a categoria.']
   }
+
 }, {
   timestamps: { createdAt: 'dataCriacao', updatedAt: 'dataAtualizacao' },
   versionKey: false
 });
+
+
+
+CategoriaAtividadeSchema.index({ nome: 1, curso: 1 }, { unique: true });
+
+
+CategoriaAtividadeSchema.index({ codigo: 1, curso: 1 }, { unique: true });
+
 
 CategoriaAtividadeSchema.index({ areaParametro: 1 });
 

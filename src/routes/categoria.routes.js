@@ -9,4 +9,5 @@ router.post('/', protect, authorize('administrador'), controller.criar);
 router.put('/:id', protect, authorize('administrador'), controller.atualizar);
 router.delete('/:id', protect, authorize('administrador'), controller.remover);
 
+
 module.exports = router;
