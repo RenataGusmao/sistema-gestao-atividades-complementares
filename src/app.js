@@ -6,10 +6,6 @@ const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// 🔥 Swagger
-const swaggerUi = require('swagger-ui-express');
-const swaggerSpec = require('./config/swagger');
-
 const authRoutes = require('./routes/auth.routes');
 const usuarioRoutes = require('./routes/usuario.routes');
 const cursoRoutes = require('./routes/curso.routes');
@@ -68,9 +64,6 @@ app.use('/api/configuracoes', configuracaoRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
-
-// 🔥 SWAGGER (ANTES DO 404)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // 404
 app.use((req, res) => {
