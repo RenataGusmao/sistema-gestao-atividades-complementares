@@ -1,4 +1,4 @@
-const Certificado = require('../models/certificado.model');
+const Certificado = require('../models/Certificado');
 const AppError = require('../utils/AppError');
 
 
@@ -14,7 +14,7 @@ exports.uploadCertificado = async (req, res, next) => {
       aluno: alunoId,
       nomeArquivo: req.file.originalname,
       caminho: `/uploads/${req.file.filename}`,
-      enviadoPor: req.user.id // se tiver auth
+      enviadoPor: req.user.id 
     });
 
     res.status(201).json({
