@@ -10,6 +10,28 @@ function normalizarMimeType(mimeType) {
   return permitidos.includes(mimeType) ? mimeType : null;
 }
 
+function montarAnexosDoUpload(files = []) {
+  return files.map((file) => ({
+    nomeArquivo: file.originalname,
+    urlArquivo: `/uploads/${file.filename}`,
+    tipoArquivo: normalizarMimeType(file.mimetype),
+    tamanhoBytes: file.size
+  }));
+}
+
+function montarAnexosDoBody(anexos = []) {
+  return anexos.map((anexo) => ({
+    nomeArquivo: anexo.nomeArquivo,
+    urlArquivo: anexo.urlArquivo,
+    tipoArquivo: normalizarMimeType(anexo.tipoArquivo),
+    tamanhoBytes: anexo.tamanhoBytes
+  }));
+}
+
+function validarTiposAnexos(anexos = []) {
+  return anexos.some((anexo) => !anexo.tipoArquivo);
+}
+
 async function validarReferencias({ alunoId, cursoId, categoriaId }) {
   const [aluno, curso, categoria] = await Promise.all([
     Aluno.findById(alunoId),
@@ -17,17 +39,9 @@ async function validarReferencias({ alunoId, cursoId, categoriaId }) {
     CategoriaAtividade.findById(categoriaId)
   ]);
 
-  if (!aluno) {
-    return { ok: false, status: 404, message: 'Aluno não encontrado.' };
-  }
-
-  if (!curso) {
-    return { ok: false, status: 404, message: 'Curso não encontrado.' };
-  }
-
-  if (!categoria) {
-    return { ok: false, status: 404, message: 'Categoria não encontrada.' };
-  }
+  if (!aluno) return { ok: false, status: 404, message: 'Aluno não encontrado.' };
+  if (!curso) return { ok: false, status: 404, message: 'Curso não encontrado.' };
+  if (!categoria) return { ok: false, status: 404, message: 'Categoria não encontrada.' };
 
   const alunoVinculadoAoCurso = Array.isArray(aluno.cursos)
     && aluno.cursos.some((item) => String(item.cursoId) === String(cursoId));
@@ -62,14 +76,15 @@ async function criar(req, res) {
       return res.status(validacao.status).json({ message: validacao.message });
     }
 
-    const anexosNormalizados = Array.isArray(anexos) ? anexos.map((anexo) => ({
-      nomeArquivo: anexo.nomeArquivo,
-      urlArquivo: anexo.urlArquivo,
-      tipoArquivo: normalizarMimeType(anexo.tipoArquivo),
-      tamanhoBytes: anexo.tamanhoBytes
-    })) : [];
+    let anexosNormalizados = [];
 
-    if (anexosNormalizados.some((anexo) => !anexo.tipoArquivo)) {
+    if (req.files && req.files.length > 0) {
+      anexosNormalizados = montarAnexosDoUpload(req.files);
+    } else if (Array.isArray(anexos)) {
+      anexosNormalizados = montarAnexosDoBody(anexos);
+    }
+
+    if (validarTiposAnexos(anexosNormalizados)) {
       return res.status(422).json({
         message: 'Erro de validação.',
         errors: ['Os tipos de arquivo permitidos são PDF, JPG/JPEG e PNG.']
@@ -192,24 +207,24 @@ async function atualizar(req, res) {
     ];
 
     const payload = {};
+
     camposPermitidos.forEach((campo) => {
-      if (req.body[campo] !== undefined) payload[campo] = req.body[campo];
+      if (req.body[campo] !== undefined) {
+        payload[campo] = req.body[campo];
+      }
     });
 
-    if (Array.isArray(payload.anexos)) {
-      payload.anexos = payload.anexos.map((anexo) => ({
-        nomeArquivo: anexo.nomeArquivo,
-        urlArquivo: anexo.urlArquivo,
-        tipoArquivo: normalizarMimeType(anexo.tipoArquivo),
-        tamanhoBytes: anexo.tamanhoBytes
-      }));
+    if (req.files && req.files.length > 0) {
+      payload.anexos = montarAnexosDoUpload(req.files);
+    } else if (Array.isArray(payload.anexos)) {
+      payload.anexos = montarAnexosDoBody(payload.anexos);
+    }
 
-      if (payload.anexos.some((anexo) => !anexo.tipoArquivo)) {
-        return res.status(422).json({
-          message: 'Erro de validação.',
-          errors: ['Os tipos de arquivo permitidos são PDF, JPG/JPEG e PNG.']
-        });
-      }
+    if (payload.anexos && validarTiposAnexos(payload.anexos)) {
+      return res.status(422).json({
+        message: 'Erro de validação.',
+        errors: ['Os tipos de arquivo permitidos são PDF, JPG/JPEG e PNG.']
+      });
     }
 
     const atividadeAtualizada = await Atividade.findByIdAndUpdate(
@@ -285,7 +300,12 @@ async function remover(req, res) {
 
 async function atualizarStatus(req, res) {
   try {
-    const { status, justificativaReprovacao, observacaoCoordenador, cargaHorariaValidada } = req.body;
+    const {
+      status,
+      justificativaReprovacao,
+      observacaoCoordenador,
+      cargaHorariaValidada
+    } = req.body;
 
     const atividade = await Atividade.findById(req.params.id);
 
@@ -297,6 +317,12 @@ async function atualizarStatus(req, res) {
 
     if (!statusPermitidos.includes(status)) {
       return res.status(422).json({ message: 'Status inválido para atualização.' });
+    }
+
+    if (status === 'Reprovada' && !justificativaReprovacao) {
+      return res.status(422).json({
+        message: 'A justificativa de reprovação é obrigatória.'
+      });
     }
 
     const regra = await RegraCargaHoraria.findOne({
@@ -319,12 +345,6 @@ async function atualizarStatus(req, res) {
       );
     }
 
-    if (status === 'Reprovada' && !justificativaReprovacao) {
-      return res.status(422).json({
-        message: 'A justificativa de reprovação é obrigatória.'
-      });
-    }
-
     const statusAnterior = atividade.status;
 
     atividade.status = status;
@@ -339,8 +359,14 @@ async function atualizarStatus(req, res) {
       statusAnterior,
       statusNovo: status,
       usuarioId: req.user?._id,
-      decisao: status === 'Aprovada' ? 'Aprovação' : status === 'Reprovada' ? 'Reprovação' : 'Atualização',
-      justificativa: status === 'Reprovada' ? justificativaReprovacao : observacaoCoordenador,
+      decisao: status === 'Aprovada'
+        ? 'Aprovação'
+        : status === 'Reprovada'
+          ? 'Reprovação'
+          : 'Atualização',
+      justificativa: status === 'Reprovada'
+        ? justificativaReprovacao
+        : observacaoCoordenador,
       cargaHorariaValidada: atividade.cargaHorariaValidada
     });
 
@@ -349,7 +375,11 @@ async function atualizarStatus(req, res) {
     if (req.user?._id) {
       await registrarAuditoria({
         usuarioId: req.user._id,
-        acao: status === 'Aprovada' ? 'APROVACAO' : status === 'Reprovada' ? 'REPROVACAO' : 'ATUALIZACAO',
+        acao: status === 'Aprovada'
+          ? 'APROVACAO'
+          : status === 'Reprovada'
+            ? 'REPROVACAO'
+            : 'ATUALIZACAO',
         entidade: 'Atividade',
         registroId: atividade._id,
         descricao: `Status da atividade atualizado para ${status}.`,
