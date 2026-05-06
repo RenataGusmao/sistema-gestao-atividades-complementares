@@ -59,6 +59,7 @@ app.get('/health', (req, res) => {
 });
 
 // ROTAS
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/cursos', cursoRoutes);
