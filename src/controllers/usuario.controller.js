@@ -78,11 +78,13 @@ exports.criar = asyncHandler(async (req, res) => {
 
   await registrarAuditoria({
     usuarioId: req.user._id,
-    tabelaAfetada: 'usuarios',
-    acao: 'CREATE',
-    idRegistroAfetado: String(usuario._id),
-    descricaoAcao: 'Criação de usuário/coordenador',
-    ipOrigem: req.ip
+    acao: 'CRIACAO',
+    entidade: 'Usuario',
+    registroId: usuario._id,
+    descricao: 'Usuário/coordenador criado.',
+    dadosNovos: usuario,
+    ipOrigem: req.ip,
+    userAgent: req.get('User-Agent') || null
   });
 
   const usuarioSemSenha = usuario.toObject();
@@ -105,44 +107,46 @@ exports.atualizar = asyncHandler(async (req, res) => {
     cursosCoordenados
   } = req.body;
 
-  const usuario = await Usuario.findById(req.params.id).select('+senhaHash');
+  const usuarioAnterior = await Usuario.findById(req.params.id).select('+senhaHash');
 
-  if (!usuario) {
+  if (!usuarioAnterior) {
     throw new AppError('Usuário não encontrado.', 404);
   }
 
-  if (email && email !== usuario.email) {
+  if (email && email !== usuarioAnterior.email) {
     const usuarioExistente = await Usuario.findOne({ email });
 
     if (usuarioExistente) {
       throw new AppError('Já existe um usuário cadastrado com este e-mail.', 409);
     }
 
-    usuario.email = email;
+    usuarioAnterior.email = email;
   }
 
-  if (codigoUsuario !== undefined) usuario.codigoUsuario = codigoUsuario;
-  if (nome !== undefined) usuario.nome = nome;
-  if (senhaHash !== undefined && senhaHash !== '') usuario.senhaHash = senhaHash;
-  if (Array.isArray(perfis)) usuario.perfis = perfis;
-  if (ativo !== undefined) usuario.ativo = ativo;
+  if (codigoUsuario !== undefined) usuarioAnterior.codigoUsuario = codigoUsuario;
+  if (nome !== undefined) usuarioAnterior.nome = nome;
+  if (senhaHash !== undefined && senhaHash !== '') usuarioAnterior.senhaHash = senhaHash;
+  if (Array.isArray(perfis)) usuarioAnterior.perfis = perfis;
+  if (ativo !== undefined) usuarioAnterior.ativo = ativo;
 
   if (Array.isArray(cursosCoordenados)) {
-    usuario.cursosCoordenados = formatarCursosCoordenados(cursosCoordenados);
+    usuarioAnterior.cursosCoordenados = formatarCursosCoordenados(cursosCoordenados);
   }
 
-  await usuario.save();
+  await usuarioAnterior.save();
 
   await registrarAuditoria({
     usuarioId: req.user._id,
-    tabelaAfetada: 'usuarios',
-    acao: 'UPDATE',
-    idRegistroAfetado: String(usuario._id),
-    descricaoAcao: 'Atualização de usuário',
-    ipOrigem: req.ip
+    acao: 'ATUALIZACAO',
+    entidade: 'Usuario',
+    registroId: usuarioAnterior._id,
+    descricao: 'Usuário atualizado.',
+    dadosNovos: usuarioAnterior,
+    ipOrigem: req.ip,
+    userAgent: req.get('User-Agent') || null
   });
 
-  const usuarioSemSenha = usuario.toObject();
+  const usuarioSemSenha = usuarioAnterior.toObject();
   delete usuarioSemSenha.senhaHash;
 
   res.json({
@@ -162,11 +166,13 @@ exports.remover = asyncHandler(async (req, res) => {
 
   await registrarAuditoria({
     usuarioId: req.user._id,
-    tabelaAfetada: 'usuarios',
-    acao: 'DELETE',
-    idRegistroAfetado: String(usuario._id),
-    descricaoAcao: 'Remoção de usuário/coordenador',
-    ipOrigem: req.ip
+    acao: 'EXCLUSAO',
+    entidade: 'Usuario',
+    registroId: usuario._id,
+    descricao: 'Usuário/coordenador removido.',
+    dadosAnteriores: usuario,
+    ipOrigem: req.ip,
+    userAgent: req.get('User-Agent') || null
   });
 
   res.json({
