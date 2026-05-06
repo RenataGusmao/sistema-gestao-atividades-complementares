@@ -3,13 +3,40 @@ const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { registrarAuditoria } = require('../services/audit.service');
 
+function formatarCursosCoordenados(cursosCoordenados = []) {
+  if (!Array.isArray(cursosCoordenados)) return [];
+
+  return cursosCoordenados
+    .filter(Boolean)
+    .map((curso) => {
+      if (typeof curso === 'object' && curso.cursoId) {
+        return { cursoId: curso.cursoId };
+      }
+
+      return { cursoId: curso };
+    });
+}
+
+function gerarCodigoUsuario(email) {
+  return email
+    .split('@')[0]
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+}
+
 exports.listar = asyncHandler(async (req, res) => {
-  const usuarios = await Usuario.find().select('-senhaHash').sort({ nome: 1 });
+  const usuarios = await Usuario.find()
+    .select('-senhaHash')
+    .populate('cursosCoordenados.cursoId')
+    .sort({ nome: 1 });
+
   res.json({ data: usuarios });
 });
 
 exports.buscarPorId = asyncHandler(async (req, res) => {
-  const usuario = await Usuario.findById(req.params.id).select('-senhaHash');
+  const usuario = await Usuario.findById(req.params.id)
+    .select('-senhaHash')
+    .populate('cursosCoordenados.cursoId');
 
   if (!usuario) {
     throw new AppError('Usuário não encontrado.', 404);
@@ -19,9 +46,17 @@ exports.buscarPorId = asyncHandler(async (req, res) => {
 });
 
 exports.criar = asyncHandler(async (req, res) => {
-  const { nome, email, senha, perfis, ativo, cursosCoordenados } = req.body;
+  const {
+    codigoUsuario,
+    nome,
+    email,
+    senhaHash,
+    perfis,
+    ativo,
+    cursosCoordenados
+  } = req.body;
 
-  if (!nome || !email || !senha) {
+  if (!nome || !email || !senhaHash) {
     throw new AppError('Nome, e-mail e senha são obrigatórios.', 400);
   }
 
@@ -32,12 +67,13 @@ exports.criar = asyncHandler(async (req, res) => {
   }
 
   const usuario = await Usuario.create({
+    codigoUsuario: codigoUsuario || gerarCodigoUsuario(email),
     nome,
     email,
-    senha,
+    senhaHash,
     perfis: Array.isArray(perfis) && perfis.length ? perfis : ['coordenador'],
     ativo: ativo !== undefined ? ativo : true,
-    cursosCoordenados: Array.isArray(cursosCoordenados) ? cursosCoordenados : []
+    cursosCoordenados: formatarCursosCoordenados(cursosCoordenados)
   });
 
   await registrarAuditoria({
@@ -50,7 +86,6 @@ exports.criar = asyncHandler(async (req, res) => {
   });
 
   const usuarioSemSenha = usuario.toObject();
-  delete usuarioSemSenha.senha;
   delete usuarioSemSenha.senhaHash;
 
   res.status(201).json({
@@ -60,7 +95,15 @@ exports.criar = asyncHandler(async (req, res) => {
 });
 
 exports.atualizar = asyncHandler(async (req, res) => {
-  const { nome, email, senha, perfis, ativo, cursosCoordenados } = req.body;
+  const {
+    codigoUsuario,
+    nome,
+    email,
+    senhaHash,
+    perfis,
+    ativo,
+    cursosCoordenados
+  } = req.body;
 
   const usuario = await Usuario.findById(req.params.id).select('+senhaHash');
 
@@ -78,11 +121,15 @@ exports.atualizar = asyncHandler(async (req, res) => {
     usuario.email = email;
   }
 
+  if (codigoUsuario !== undefined) usuario.codigoUsuario = codigoUsuario;
   if (nome !== undefined) usuario.nome = nome;
-  if (senha !== undefined && senha !== '') usuario.senha = senha;
+  if (senhaHash !== undefined && senhaHash !== '') usuario.senhaHash = senhaHash;
   if (Array.isArray(perfis)) usuario.perfis = perfis;
   if (ativo !== undefined) usuario.ativo = ativo;
-  if (Array.isArray(cursosCoordenados)) usuario.cursosCoordenados = cursosCoordenados;
+
+  if (Array.isArray(cursosCoordenados)) {
+    usuario.cursosCoordenados = formatarCursosCoordenados(cursosCoordenados);
+  }
 
   await usuario.save();
 
@@ -96,7 +143,6 @@ exports.atualizar = asyncHandler(async (req, res) => {
   });
 
   const usuarioSemSenha = usuario.toObject();
-  delete usuarioSemSenha.senha;
   delete usuarioSemSenha.senhaHash;
 
   res.json({
