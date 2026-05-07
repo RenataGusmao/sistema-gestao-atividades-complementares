@@ -1,208 +1,547 @@
-# 🚀 KORE - API de Gestão de Atividades Complementares
+# KORE — Backend API
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Node.js-18+-green?logo=node.js">
-  <img src="https://img.shields.io/badge/Express.js-Framework-lightgrey?logo=express">
-  <img src="https://img.shields.io/badge/MongoDB-Database-green?logo=mongodb">
-  <img src="https://img.shields.io/badge/Mongoose-ODM-red">
-  <img src="https://img.shields.io/badge/JWT-Autenticação-blue">
-  <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow">
-</p>
+Sistema de Gestão de Atividades Complementares desenvolvido em Node.js, Express e MongoDB.
 
----
+O projeto foi construído com foco em:
 
-## 📌 Sobre o Projeto
-
-O KORE é uma API backend desenvolvida em **Node.js + Express + MongoDB**, com foco na gestão de atividades complementares no ambiente acadêmico.
-
-O sistema implementa o fluxo completo de:
-- submissão
-- validação
-- auditoria
-
-Garantindo controle, rastreabilidade e aplicação de regras de negócio.
+* organização acadêmica;
+* validação de atividades complementares;
+* rastreabilidade;
+* auditoria;
+* autenticação segura;
+* integração entre frontend e backend.
 
 ---
 
-## 🎯 Objetivo
+# 📌 Objetivo do Projeto
 
-Substituir processos manuais por uma solução estruturada que permita:
+O KORE foi desenvolvido para auxiliar instituições de ensino no gerenciamento de atividades complementares realizadas pelos alunos.
 
-- 📥 Submissão de atividades  
-- ✅ Validação por coordenadores  
-- 📊 Controle de carga horária  
-- 🔎 Rastreamento de decisões  
-- 🔐 Segurança e integridade dos dados  
+O sistema permite:
 
----
-
-## 🧠 Modelo de Domínio
-
-Baseado em modelo relacional (SQL), adaptado para MongoDB:
-
-- 👤 Usuários (administrador, coordenador)
-- 🎓 Cursos
-- 👨‍🎓 Alunos
-- 📂 Categorias de atividade
-- 📏 Regras de carga horária
-- 📄 Atividades complementares
-- 📎 Anexos
-- 📜 Histórico de validações
-- 🔍 Auditoria
-- ⚙️ Configurações
+* cadastro e gerenciamento de usuários;
+* gerenciamento de cursos;
+* gerenciamento de alunos;
+* gerenciamento de categorias;
+* envio de atividades complementares;
+* upload de certificados;
+* validação de atividades;
+* auditoria de ações realizadas no sistema;
+* controle de status das atividades.
 
 ---
 
-## 🗂️ Estrutura do Banco (MongoDB)
+# 🏗️ Arquitetura do Projeto
 
-| Coleção | Descrição |
-|--------|----------|
-| usuarios | Usuários do sistema |
-| cursos | Cursos acadêmicos |
-| alunos | Alunos vinculados |
-| categoriaatividades | Tipos de atividade |
-| regracargahorarias | Regras de carga |
-| statusatividades | Status |
-| atividades | Atividades |
-| auditorias | Log |
-| configuracaosistemas | Configurações |
+O backend segue uma arquitetura baseada em separação de responsabilidades.
 
----
+## Estrutura principal
 
-## ⚙️ Decisões Técnicas
-
-### 📌 Embedding
-- anexos dentro de Atividade  
-- historicoValidacoes dentro de Atividade  
-
-### 🔗 Referências
-- Usuário  
-- Curso  
-- Aluno  
-- Categoria  
-
-### 🔍 Auditoria
-- coleção separada → rastreabilidade completa  
+```bash
+src/
+ ├── config/
+ ├── controllers/
+ ├── middlewares/
+ ├── models/
+ ├── routes/
+ ├── services/
+ ├── utils/
+ ├── uploads/
+ ├── app.js
+ └── server.js
+```
 
 ---
 
-## 🔐 Segurança
+# 📂 Explicação das Pastas
 
-- Helmet  
-- CORS  
-- Rate Limit  
-- Mongo Sanitize  
-- JWT Authentication  
-- Bcrypt (hash de senha)  
-- Controle por perfil  
-- Validação de arquivos  
-- Auditoria obrigatória  
+## 📁 config/
 
----
+Responsável pelas configurações do sistema.
 
-## 🔄 Fluxo do Sistema
+Exemplo:
 
-1. Cadastro de curso, categoria e regras  
-2. Cadastro de aluno  
-3. Submissão de atividade  
-4. Validação (aprovação ou reprovação)  
-5. Registro em histórico e auditoria  
+* conexão com MongoDB;
+* variáveis de ambiente;
+* configurações globais.
 
 ---
 
-## 📊 Regras de Negócio
+## 📁 controllers/
 
-✔ Atividade deve conter:
-- título  
-- descrição  
-- data  
-- categoria  
-- carga horária  
-- anexo obrigatório  
+Contém as regras de negócio da aplicação.
 
-✔ Validação obrigatória por coordenador  
-✔ Reprovação exige justificativa  
-✔ Limite de carga por:
-- categoria  
-- semestre  
+Os controllers:
 
-✔ Auditoria obrigatória  
-✔ Controle por perfil  
+* recebem a requisição;
+* processam os dados;
+* validam informações;
+* chamam models;
+* retornam respostas.
+
+Exemplo:
+
+```js
+async function criarCurso(req, res) {
+```
 
 ---
 
-## 🚀 Como Executar
+## 📁 middlewares/
 
-### 1. Instalar dependências
+Executam regras entre a requisição e a resposta.
+
+Exemplos:
+
+* autenticação JWT;
+* validação de permissões;
+* tratamento de erros;
+* upload de arquivos;
+* sanitização.
+
+---
+
+## 📁 models/
+
+Representam as coleções do MongoDB.
+
+Os models definem:
+
+* estrutura dos dados;
+* tipos;
+* validações;
+* relacionamentos.
+
+Exemplo:
+
+```js
+const CursoSchema = new mongoose.Schema({
+```
+
+---
+
+## 📁 routes/
+
+Definem os endpoints da API.
+
+Exemplo:
+
+```js
+router.post('/login', login)
+```
+
+As rotas apenas direcionam as requisições.
+
+---
+
+## 📁 uploads/
+
+Pasta responsável por armazenar arquivos enviados.
+
+Exemplos:
+
+* certificados PDF;
+* imagens;
+* documentos.
+
+---
+
+# ⚙️ app.js e server.js
+
+## 📌 app.js
+
+Responsável pela configuração principal da aplicação.
+
+Nele ficam:
+
+* middlewares;
+* rotas;
+* CORS;
+* Helmet;
+* logs;
+* tratamento de erros.
+
+O app.js NÃO inicia o servidor.
+
+---
+
+## 📌 server.js
+
+Responsável por:
+
+* carregar variáveis de ambiente;
+* conectar ao banco;
+* iniciar o servidor.
+
+Exemplo:
+
+```js
+app.listen(PORT)
+```
+
+---
+
+# 🛠️ Tecnologias Utilizadas
+
+## Backend
+
+* Node.js
+* Express
+* MongoDB Atlas
+* Mongoose
+
+## Segurança
+
+* JWT
+* Helmet
+* express-mongo-sanitize
+* Rate Limit
+* CORS
+
+## Uploads
+
+* Multer
+
+## Utilitários
+
+* dotenv
+* morgan
+* nodemon
+
+---
+
+# 🔐 Autenticação
+
+O sistema utiliza autenticação JWT.
+
+## Fluxo
+
+1. Usuário realiza login;
+2. Backend valida credenciais;
+3. Backend gera token JWT;
+4. Frontend armazena token;
+5. Token é enviado nas rotas protegidas.
+
+---
+
+## Exemplo de Header
+
+```http
+Authorization: Bearer TOKEN
+```
+
+---
+
+# 👥 Perfis do Sistema
+
+## Administrador
+
+Responsável por:
+
+* gerenciar usuários;
+* gerenciar cursos;
+* gerenciar categorias;
+* visualizar auditoria.
+
+---
+
+## Coordenador
+
+Responsável por:
+
+* validar atividades;
+* aprovar atividades;
+* reprovar atividades;
+* acompanhar alunos.
+
+---
+
+## Aluno
+
+Responsável por:
+
+* enviar atividades;
+* anexar certificados;
+* acompanhar status.
+
+---
+
+# 📚 Regras de Negócio
+
+## 📌 Atividades Complementares
+
+Cada atividade deve possuir:
+
+* título;
+* descrição;
+* categoria;
+* carga horária;
+* data;
+* arquivo.
+
+---
+
+## 📌 Status possíveis
+
+* Enviada
+* Aprovada
+* Reprovada
+
+---
+
+## 📌 Uploads
+
+O sistema valida:
+
+* tipo do arquivo;
+* tamanho máximo;
+* extensões permitidas.
+
+Formatos aceitos:
+
+* PDF
+* JPG
+* JPEG
+* PNG
+
+---
+
+## 📌 Auditoria
+
+O sistema registra ações importantes.
+
+Exemplos:
+
+* criação;
+* edição;
+* exclusão;
+* aprovação;
+* reprovação.
+
+Objetivo:
+
+* rastreabilidade;
+* segurança;
+* histórico.
+
+---
+
+# 🗄️ Banco de Dados
+
+O projeto utiliza MongoDB Atlas.
+
+A modelagem foi adaptada de um modelo relacional para MongoDB.
+
+---
+
+# 📌 Principais Coleções
+
+## Usuários
+
+Armazena:
+
+* nome;
+* email;
+* senha criptografada;
+* perfil.
+
+---
+
+## Cursos
+
+Armazena:
+
+* nome;
+* código;
+* carga horária.
+
+---
+
+## Alunos
+
+Armazena:
+
+* matrícula;
+* vínculo com curso;
+* dados pessoais.
+
+---
+
+## Categorias
+
+Armazena:
+
+* nome da categoria;
+* limite de horas.
+
+---
+
+## Atividades
+
+Armazena:
+
+* atividade enviada;
+* certificado;
+* status;
+* histórico.
+
+---
+
+# 📡 Rotas Principais
+
+## 🔐 Auth
+
+| Método | Rota            |
+| ------ | --------------- |
+| POST   | /api/auth/login |
+
+---
+
+## 📚 Cursos
+
+| Método | Rota            |
+| ------ | --------------- |
+| GET    | /api/cursos     |
+| POST   | /api/cursos     |
+| PUT    | /api/cursos/:id |
+| DELETE | /api/cursos/:id |
+
+---
+
+## 👨‍🎓 Alunos
+
+| Método | Rota            |
+| ------ | --------------- |
+| GET    | /api/alunos     |
+| POST   | /api/alunos     |
+| PUT    | /api/alunos/:id |
+| DELETE | /api/alunos/:id |
+
+---
+
+## 📝 Atividades
+
+| Método | Rota                       |
+| ------ | -------------------------- |
+| POST   | /api/atividades            |
+| GET    | /api/atividades            |
+| PUT    | /api/atividades/:id/status |
+
+---
+
+# 📂 Upload de Arquivos
+
+O upload é realizado utilizando Multer.
+
+## Funcionamento
+
+1. Usuário envia arquivo;
+2. Backend valida tipo;
+3. Backend valida tamanho;
+4. Arquivo é salvo em `/uploads`;
+5. Dados são registrados no banco.
+
+---
+
+# 🧪 Testes da API
+
+Os testes podem ser realizados utilizando:
+
+* Insomnia;
+* Postman.
+
+---
+
+# ▶️ Como Executar o Projeto
+
+## 1. Clonar repositório
+
+```bash
+git clone URL_DO_REPOSITORIO
+```
+
+---
+
+## 2. Instalar dependências
+
 ```bash
 npm install
+```
 
-### 2. Configurar .env
+---
 
+## 3. Criar arquivo .env
+
+```env
 PORT=3000
-NODE_ENV=development
-MONGODB_URI=mongodb://127.0.0.1:27017/kore
-JWT_SECRET=sua_chave_super_secreta
-JWT_EXPIRES_IN=1d
-BCRYPT_SALT_ROUNDS=12
-MAX_FILE_SIZE_BYTES=5242880
-ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png
-CORS_ORIGIN=http://localhost:5173
+MONGO_URI=URL_MONGODB
+JWT_SECRET=SUA_CHAVE
+```
 
-### 3. Configurar .env
-npm run seed
+---
 
-### 4. Subir API
+## 4. Executar projeto
 
-🔑 Credenciais
-| Perfil | Email                                   | Senha  |
-| ------ | --------------------------------------- | ------ |
-| Admin  | [admin@kore.com](mailto:admin@kore.com) | 123456 |
+```bash
+npm run dev
+```
 
-🔐 Auth
-POST /api/auth/login
+---
 
-🎓 Cursos
-GET /api/cursos
-POST /api/cursos
+# 🌐 Deploy
 
-👨‍🎓 Alunos
-GET /api/alunos
-POST /api/alunos
+O backend foi preparado para deploy em serviços como:
 
-📂 Categorias
-GET /api/categorias
-POST /api/categorias
+* Render;
+* Railway;
+* Vercel Serverless;
+* Cyclic.
 
-📏 Regras
-GET /api/regras-carga-horaria
-POST /api/regras-carga-horaria
+---
 
-📄 Atividades
-GET /api/atividades
-POST /api/atividades
-PATCH /api/atividades/:id/status
+# 🔒 Segurança Implementada
 
-🧪 ### Exemplo de Login
-curl --request POST \
-  --url http://localhost:3000/api/auth/login \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "email": "admin@kore.com",
-    "senha": "123456"
-  }'
+## Helmet
 
-📌 ### Observações
-Modelo baseado em SQL original
-Adaptado para MongoDB
-Preparado para:
-Mobile (aluno)
-PWA (coordenação)
-Dashboards
+Protege headers HTTP.
 
-### Diferencial
-✔ Regras de negócio reais
-✔ Fluxo acadêmico completo
-✔ Auditoria e rastreabilidade
-✔ Controle por perfil
-✔ Validação contextual
+---
+
+## Rate Limit
+
+Evita excesso de requisições.
+
+---
+
+## Mongo Sanitize
+
+Evita ataques NoSQL Injection.
+
+---
+
+## JWT
+
+Protege rotas privadas.
+
+---
+
+# 📈 Melhorias Futuras
+
+* envio automático de e-mails;
+* dashboard analítico;
+* notificações em tempo real;
+* logs avançados;
+* recuperação de senha;
+* integração com sistema acadêmico.
+
+---
+
+# 👨‍💻 Equipe
+
+Projeto desenvolvido para a disciplina de Projeto Integrador.
+
+---
+
+# 📄 Licença
+
+Este projeto possui finalidade acadêmica.
