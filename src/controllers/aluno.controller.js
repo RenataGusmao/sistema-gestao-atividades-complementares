@@ -145,10 +145,35 @@ async function remover(req, res) {
   }
 }
 
+async function dashboard(req, res) {
+  try {
+    const aluno = req.aluno;
+
+    return res.status(200).json({
+      aluno: {
+        id: aluno._id,
+        nome: aluno.nome,
+        email: aluno.email,
+        matricula: aluno.matricula,
+        matriculaAtiva: aluno.matriculaAtiva,
+        ultimoLogin: aluno.ultimoLogin
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao carregar dashboard.'
+    });
+  }
+}
+
 module.exports = {
   criar,
   listar,
   buscarPorId,
+  dashboard,
   atualizar,
   remover
 };

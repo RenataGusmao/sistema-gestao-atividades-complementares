@@ -15,6 +15,7 @@ const configuracaoRoutes = require('./routes/configuracao.routes');
 const categoriaRoutes = require('./routes/categoria.routes');
 const regraCargaHorariaRoutes = require('./routes/regraCargaHoraria.routes');
 const statusAtividadeRoutes = require('./routes/statusAtividade.routes');
+const alunoAuthRoutes = require('./routes/alunoAuth.routes');
 
 const certificadoRoutes = require('./routes/certificado.routes');
 
@@ -69,7 +70,7 @@ app.use('/api/configuracoes', configuracaoRoutes);
 app.use('/api/categorias', categoriaRoutes);
 app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
-
+app.use('/api/alunos/auth', alunoAuthRoutes);
 app.use('/api/certificados', certificadoRoutes);
 
 // 404

@@ -48,15 +48,36 @@ const AlunoSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+
+
   dataPrevistaColacao: {
     type: Date,
     required: [true, 'A data prevista de colação é obrigatória.']
-  }
-}, {
+  },
+
+  senhaHash: {
+  type: String,
+  select: false
+},
+
+ultimoLogin: {
+  type: Date,
+  default: null
+},
+
+ativo: {
+  type: Boolean,
+  default: true
+}
+
+},
+
+{
   timestamps: { createdAt: 'dataCriacao', updatedAt: 'dataAtualizacao' },
   versionKey: false
 });
 
 AlunoSchema.index({ email: 1 });
+
 
 module.exports = mongoose.model('Aluno', AlunoSchema);
