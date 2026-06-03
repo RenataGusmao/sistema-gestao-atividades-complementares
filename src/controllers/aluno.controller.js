@@ -1,4 +1,6 @@
 const Aluno = require('../models/Aluno');
+const Atividade = require('../models/Atividade');
+const Certificado = require('../models/Certificado');
 const { registrarAuditoria } = require('../services/audit.service');
 
 async function criar(req, res) {
@@ -166,6 +168,107 @@ async function dashboard(req, res) {
     return res.status(500).json({
       message: 'Erro ao carregar dashboard.'
     });
+  } 
+}
+
+async function listarMinhasAtividades(req, res) {
+  try {
+    const atividades = await Atividade.find(
+  { alunoId: req.aluno._id },
+  {
+    titulo: 1,
+    status: 1,
+    cargaHorariaInformada: 1,
+    justificativaReprovacao: 1,
+    dataCriacao: 1
+  }
+);
+
+    return res.status(200).json(atividades);
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao listar atividades.'
+    });
+  }
+}
+
+async function submeterAtividade(req, res) {
+  try {
+    const {
+      cursoId,
+      categoriaId,
+      titulo,
+      descricao,
+      dataRealizacao,
+      cargaHorariaInformada
+    } = req.body;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(422).json({
+        message: 'É obrigatório anexar ao menos um certificado.'
+      });
+    }
+
+    const anexos = req.files.map(file => ({
+      nomeArquivo: file.originalname,
+      urlArquivo: `/uploads/${file.filename}`,
+      tipoArquivo: file.mimetype,
+      tamanhoBytes: file.size
+    }));
+
+    const atividade = await Atividade.create({
+      alunoId: req.aluno._id,
+      cursoId,
+      categoriaId,
+      titulo,
+      descricao,
+      dataRealizacao,
+      cargaHorariaInformada,
+      anexos,
+      status: 'Enviada'
+    });
+
+    for (const anexo of anexos) {
+      await Certificado.create({
+        aluno: req.aluno._id,
+        nomeArquivo: anexo.nomeArquivo,
+        caminho: anexo.urlArquivo
+      });
+    }
+
+    return res.status(201).json(atividade);
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao submeter atividade.'
+    });
+  }
+}
+
+async function listarCertificados(req, res) {
+  try {
+    const certificados = await Certificado.find(
+      { aluno: req.aluno._id },
+      {
+        nomeArquivo: 1,
+        caminho: 1,
+        dataEnvio: 1
+      }
+    );
+
+    return res.status(200).json(certificados);
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao listar certificados.'
+    });
   }
 }
 
@@ -174,6 +277,9 @@ module.exports = {
   listar,
   buscarPorId,
   dashboard,
+  listarMinhasAtividades,
+  listarCertificados,
+  submeterAtividade,
   atualizar,
   remover
 };
