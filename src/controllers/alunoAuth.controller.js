@@ -16,9 +16,15 @@ function gerarToken(aluno) {
 
 async function login(req, res) {
   try {
-    const { matricula, senha } = req.body;
+    const { matricula, email, senha } = req.body;
 
-    const aluno = await Aluno.findOne({ matricula }).select('+senhaHash');
+    const filtro = matricula && email
+      ? { $or: [{ matricula }, { email }] }
+      : matricula
+        ? { matricula }
+        : { email };
+
+    const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno || !aluno.ativo) {
       return res.status(401).json({
@@ -46,6 +52,13 @@ async function login(req, res) {
         nome: aluno.nome,
         email: aluno.email,
         matricula: aluno.matricula
+      },
+      usuario: {
+        id: aluno._id,
+        nome: aluno.nome,
+        email: aluno.email,
+        matricula: aluno.matricula,
+        perfil: 'aluno'
       }
     });
 
@@ -59,9 +72,15 @@ async function login(req, res) {
 
 async function primeiroAcesso(req, res) {
   try {
-    const { matricula, senha } = req.body;
+    const { matricula, email, senha } = req.body;
 
-    const aluno = await Aluno.findOne({ matricula }).select('+senhaHash');
+    const filtro = matricula && email
+      ? { $or: [{ matricula }, { email }] }
+      : matricula
+        ? { matricula }
+        : { email };
+
+    const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno) {
       return res.status(404).json({

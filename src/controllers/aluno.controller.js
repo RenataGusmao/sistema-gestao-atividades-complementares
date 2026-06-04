@@ -1,6 +1,7 @@
 const Aluno = require('../models/Aluno');
 const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
+const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
 
 async function criar(req, res) {
@@ -184,7 +185,15 @@ async function listarMinhasAtividades(req, res) {
   }
 );
 
-    return res.status(200).json(atividades);
+    return res.status(200).json(atividades.map((atividade) => ({
+      _id: atividade._id,
+      titulo: atividade.titulo,
+      status: atividade.status,
+      cargaHoraria: atividade.cargaHorariaInformada,
+      cargaHorariaInformada: atividade.cargaHorariaInformada,
+      justificativaReprovacao: atividade.justificativaReprovacao,
+      dataCriacao: atividade.dataCriacao
+    })));
 
   } catch (error) {
     console.error(error);
@@ -203,16 +212,35 @@ async function submeterAtividade(req, res) {
       titulo,
       descricao,
       dataRealizacao,
-      cargaHorariaInformada
+      cargaHorariaInformada,
+      cargaHoraria
     } = req.body;
 
-    if (!req.files || req.files.length === 0) {
+    const arquivos = Array.isArray(req.files)
+      ? req.files
+      : [
+          ...(req.files?.anexos || []),
+          ...(req.files?.certificado || [])
+        ];
+
+    if (!arquivos || arquivos.length === 0) {
       return res.status(422).json({
         message: 'É obrigatório anexar ao menos um certificado.'
       });
     }
 
-    const anexos = req.files.map(file => ({
+    const cursoAlunoId = cursoId || req.aluno.cursos?.[0]?.cursoId;
+    const categoria = categoriaId
+      ? await CategoriaAtividade.findById(categoriaId)
+      : await CategoriaAtividade.findOne({ curso: cursoAlunoId, ativa: true }).sort({ nome: 1 });
+
+    if (!cursoAlunoId || !categoria) {
+      return res.status(422).json({
+        message: 'Nao foi possivel identificar curso/categoria para a atividade.'
+      });
+    }
+
+    const anexos = arquivos.map(file => ({
       nomeArquivo: file.originalname,
       urlArquivo: `/uploads/${file.filename}`,
       tipoArquivo: file.mimetype,
@@ -221,12 +249,12 @@ async function submeterAtividade(req, res) {
 
     const atividade = await Atividade.create({
       alunoId: req.aluno._id,
-      cursoId,
-      categoriaId,
+      cursoId: cursoAlunoId,
+      categoriaId: categoria._id,
       titulo,
-      descricao,
-      dataRealizacao,
-      cargaHorariaInformada,
+      descricao: descricao || titulo,
+      dataRealizacao: dataRealizacao || new Date(),
+      cargaHorariaInformada: cargaHorariaInformada || cargaHoraria,
       anexos,
       status: 'Enviada'
     });

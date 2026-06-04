@@ -15,7 +15,7 @@ async function authAluno(req, res, next) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded.tipo !== 'aluno') {
+    if (decoded.perfil !== 'aluno') {
       return res.status(403).json({
         message: 'Acesso não autorizado.'
       });
