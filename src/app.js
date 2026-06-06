@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -18,6 +18,7 @@ const statusAtividadeRoutes = require('./routes/statusAtividade.routes');
 const alunoAuthRoutes = require('./routes/alunoAuth.routes');
 
 const certificadoRoutes = require('./routes/certificado.routes');
+const auditoriaRoutes = require('./routes/auditoria.routes');
 
 
 const errorHandler = require('./middlewares/errorHandler');
@@ -38,7 +39,7 @@ const limiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
+  message: { message: 'Muitas requisiÃ§Ãµes. Tente novamente mais tarde.' }
 });
 app.use('/api', limiter);
 
@@ -47,7 +48,7 @@ const authLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas tentativas de autenticação. Aguarde alguns minutos.' }
+  message: { message: 'Muitas tentativas de autenticaÃ§Ã£o. Aguarde alguns minutos.' }
 });
 app.use('/api/auth', authLimiter);
 
@@ -72,10 +73,11 @@ app.use('/api/regras-carga-horaria', regraCargaHorariaRoutes);
 app.use('/api/status-atividade', statusAtividadeRoutes);
 app.use('/api/alunos/auth', alunoAuthRoutes);
 app.use('/api/certificados', certificadoRoutes);
+app.use('/api/auditoria', auditoriaRoutes);
 
 // 404
 app.use((req, res) => {
-  res.status(404).json({ message: 'Rota não encontrada.' });
+  res.status(404).json({ message: 'Rota nÃ£o encontrada.' });
 });
 
 // error handler
