@@ -1,4 +1,4 @@
-﻿const Aluno = require('../models/Aluno');
+const Aluno = require('../models/Aluno');
 const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
@@ -33,7 +33,7 @@ async function criar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validaÃ§Ã£o.',
+        message: 'Erro de validação.',
         errors
       });
     }
@@ -58,7 +58,7 @@ async function buscarPorId(req, res) {
     const aluno = await Aluno.findById(req.params.id).populate('cursos.cursoId');
 
     if (!aluno) {
-      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+      return res.status(404).json({ message: 'Aluno não encontrado.' });
     }
 
     return res.status(200).json(aluno);
@@ -73,7 +73,7 @@ async function atualizar(req, res) {
     const alunoAnterior = await Aluno.findById(req.params.id);
 
     if (!alunoAnterior) {
-      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+      return res.status(404).json({ message: 'Aluno não encontrado.' });
     }
 
     const alunoAtualizado = await Aluno.findByIdAndUpdate(
@@ -108,7 +108,7 @@ async function atualizar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validaÃ§Ã£o.',
+        message: 'Erro de validação.',
         errors
       });
     }
@@ -123,7 +123,7 @@ async function remover(req, res) {
     const aluno = await Aluno.findById(req.params.id);
 
     if (!aluno) {
-      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+      return res.status(404).json({ message: 'Aluno não encontrado.' });
     }
 
     await Aluno.findByIdAndDelete(req.params.id);
@@ -204,32 +204,6 @@ async function listarMinhasAtividades(req, res) {
   }
 }
 
-async function listarCategoriasDisponiveis(req, res) {
-  try {
-    const cursoAlunoId = req.query.cursoId || req.aluno.cursos?.[0]?.cursoId;
-
-    if (!cursoAlunoId) {
-      return res.status(422).json({
-        message: 'Não foi possível identificar o curso do aluno.'
-      });
-    }
-
-    const categorias = await CategoriaAtividade
-      .find({ curso: cursoAlunoId, ativa: true })
-      .sort({ areaParametro: 1, nome: 1 });
-
-    return res.status(200).json({
-      cursoId: cursoAlunoId,
-      categorias
-    });
-  } catch (error) {
-    console.error(error);
-
-    return res.status(500).json({
-      message: 'Erro ao listar categorias disponíveis.'
-    });
-  }
-}
 async function submeterAtividade(req, res) {
   try {
     const {
@@ -251,7 +225,7 @@ async function submeterAtividade(req, res) {
 
     if (!arquivos || arquivos.length === 0) {
       return res.status(422).json({
-        message: 'Ã‰ obrigatÃ³rio anexar ao menos um certificado.'
+        message: 'É obrigatório anexar ao menos um certificado.'
       });
     }
 
@@ -332,12 +306,8 @@ module.exports = {
   buscarPorId,
   dashboard,
   listarMinhasAtividades,
-  listarCategoriasDisponiveis,
   listarCertificados,
   submeterAtividade,
   atualizar,
   remover
 };
-
-
-
