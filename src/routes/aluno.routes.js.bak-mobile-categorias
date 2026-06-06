@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const controller = require('../controllers/aluno.controller');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -12,7 +12,6 @@ router.get('/', protect, authorize('administrador', 'coordenador'), controller.l
 router.post('/', protect, authorize('administrador', 'coordenador'), controller.criar);
 router.get('/dashboard', authAluno, controller.dashboard);
 router.get('/atividades', authAluno, controller.listarMinhasAtividades);
-router.get('/categorias', authAluno, controller.listarCategoriasDisponiveis);
 router.post('/atividades', authAluno, upload.fields([
   { name: 'anexos', maxCount: 5 },
   { name: 'certificado', maxCount: 1 }
@@ -23,4 +22,3 @@ router.patch('/:id', protect, authorize('administrador', 'coordenador'), control
 router.delete('/:id', protect, authorize('administrador', 'coordenador'), controller.remover);
 
 module.exports = router;
-
