@@ -1,9 +1,9 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 const Aluno = require('../models/Aluno');
 const { registrarAuditoria } = require('../services/audit.service');
 
 function gerarToken(aluno) {
-    return jwt.sign(
+  return jwt.sign(
     {
       sub: aluno._id,
       perfil: 'aluno',
@@ -14,11 +14,30 @@ function gerarToken(aluno) {
   );
 }
 
+function montarFiltroAluno({ matricula, email }) {
+  const matriculaLimpa = matricula ? String(matricula).trim().toUpperCase() : '';
+  const emailLimpo = email ? String(email).trim().toLowerCase() : '';
+
+  if (matriculaLimpa && !matriculaLimpa.includes('@')) {
+    return {
+      filtro: { matricula: matriculaLimpa },
+      emailLimpo
+    };
+  }
+
+  return {
+    filtro: { email: emailLimpo },
+    emailLimpo
+  };
+}
+
 async function login(req, res) {
   try {
-    const { matricula, senha } = req.body;
+    const { matricula, email, senha } = req.body;
 
-    const aluno = await Aluno.findOne({ matricula }).select('+senhaHash');
+    const { filtro } = montarFiltroAluno({ matricula, email });
+
+    const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno || !aluno.ativo) {
       return res.status(401).json({
@@ -46,6 +65,13 @@ async function login(req, res) {
         nome: aluno.nome,
         email: aluno.email,
         matricula: aluno.matricula
+      },
+      usuario: {
+        id: aluno._id,
+        nome: aluno.nome,
+        email: aluno.email,
+        matricula: aluno.matricula,
+        perfil: 'aluno'
       }
     });
 
@@ -59,11 +85,20 @@ async function login(req, res) {
 
 async function primeiroAcesso(req, res) {
   try {
-    const { matricula, senha } = req.body;
+    const { matricula, email, senha, novaSenha } = req.body;
+    const senhaPrimeiroAcesso = senha || novaSenha;
 
-    const aluno = await Aluno.findOne({ matricula }).select('+senhaHash');
+    const { filtro, emailLimpo } = montarFiltroAluno({ matricula, email });
+
+    const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno) {
+      return res.status(404).json({
+        message: 'Aluno não encontrado.'
+      });
+    }
+
+    if (emailLimpo && aluno.email !== emailLimpo) {
       return res.status(404).json({
         message: 'Aluno não encontrado.'
       });
@@ -75,7 +110,7 @@ async function primeiroAcesso(req, res) {
       });
     }
 
-    aluno.senhaHash = senha;
+    aluno.senhaHash = senhaPrimeiroAcesso;
 
     await aluno.save();
 
@@ -91,7 +126,6 @@ async function primeiroAcesso(req, res) {
     });
   }
 }
-
 
 module.exports = {
   login,

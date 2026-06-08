@@ -1,4 +1,4 @@
-const Usuario = require('../models/Usuario');
+﻿const Usuario = require('../models/Usuario');
 const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { registrarAuditoria } = require('../services/audit.service');
@@ -39,7 +39,7 @@ exports.buscarPorId = asyncHandler(async (req, res) => {
     .populate('cursosCoordenados.cursoId');
 
   if (!usuario) {
-    throw new AppError('Usuário não encontrado.', 404);
+    throw new AppError('UsuÃ¡rio nÃ£o encontrado.', 404);
   }
 
   res.json({ data: usuario });
@@ -56,21 +56,24 @@ exports.criar = asyncHandler(async (req, res) => {
     cursosCoordenados
   } = req.body;
 
-  if (!nome || !email || !senhaHash) {
-    throw new AppError('Nome, e-mail e senha são obrigatórios.', 400);
+  const codigoFinal = codigoUsuario || gerarCodigoUsuario(email);
+  const senhaInicial = senhaHash || codigoFinal;
+
+  if (!nome || !email || !codigoFinal) {
+    throw new AppError('Nome, e-mail e código/matrícula são obrigatórios.', 400);
   }
 
-  const usuarioExistente = await Usuario.findOne({ email });
+  const usuarioExistente = await Usuario.findOne({ codigoUsuario: codigoFinal });
 
   if (usuarioExistente) {
-    throw new AppError('Já existe um usuário cadastrado com este e-mail.', 409);
+    throw new AppError('Já existe um usuário cadastrado com esta matrícula.', 409);
   }
 
   const usuario = await Usuario.create({
-    codigoUsuario: codigoUsuario || gerarCodigoUsuario(email),
+    codigoUsuario: codigoFinal,
     nome,
     email,
-    senhaHash,
+    senhaHash: senhaInicial,
     perfis: Array.isArray(perfis) && perfis.length ? perfis : ['coordenador'],
     ativo: ativo !== undefined ? ativo : true,
     cursosCoordenados: formatarCursosCoordenados(cursosCoordenados)
@@ -81,7 +84,7 @@ exports.criar = asyncHandler(async (req, res) => {
     acao: 'CRIACAO',
     entidade: 'Usuario',
     registroId: usuario._id,
-    descricao: 'Usuário/coordenador criado.',
+    descricao: 'UsuÃ¡rio/coordenador criado.',
     dadosNovos: usuario,
     ipOrigem: req.ip,
     userAgent: req.get('User-Agent') || null
@@ -91,7 +94,7 @@ exports.criar = asyncHandler(async (req, res) => {
   delete usuarioSemSenha.senhaHash;
 
   res.status(201).json({
-    message: 'Usuário criado com sucesso.',
+    message: 'UsuÃ¡rio criado com sucesso.',
     data: usuarioSemSenha
   });
 });
@@ -110,18 +113,10 @@ exports.atualizar = asyncHandler(async (req, res) => {
   const usuarioAnterior = await Usuario.findById(req.params.id).select('+senhaHash');
 
   if (!usuarioAnterior) {
-    throw new AppError('Usuário não encontrado.', 404);
+    throw new AppError('UsuÃ¡rio nÃ£o encontrado.', 404);
   }
 
-  if (email && email !== usuarioAnterior.email) {
-    const usuarioExistente = await Usuario.findOne({ email });
-
-    if (usuarioExistente) {
-      throw new AppError('Já existe um usuário cadastrado com este e-mail.', 409);
-    }
-
-    usuarioAnterior.email = email;
-  }
+  if (email !== undefined) usuarioAnterior.email = email;
 
   if (codigoUsuario !== undefined) usuarioAnterior.codigoUsuario = codigoUsuario;
   if (nome !== undefined) usuarioAnterior.nome = nome;
@@ -140,7 +135,7 @@ exports.atualizar = asyncHandler(async (req, res) => {
     acao: 'ATUALIZACAO',
     entidade: 'Usuario',
     registroId: usuarioAnterior._id,
-    descricao: 'Usuário atualizado.',
+    descricao: 'UsuÃ¡rio atualizado.',
     dadosNovos: usuarioAnterior,
     ipOrigem: req.ip,
     userAgent: req.get('User-Agent') || null
@@ -150,7 +145,7 @@ exports.atualizar = asyncHandler(async (req, res) => {
   delete usuarioSemSenha.senhaHash;
 
   res.json({
-    message: 'Usuário atualizado com sucesso.',
+    message: 'UsuÃ¡rio atualizado com sucesso.',
     data: usuarioSemSenha
   });
 });
@@ -159,7 +154,7 @@ exports.remover = asyncHandler(async (req, res) => {
   const usuario = await Usuario.findById(req.params.id);
 
   if (!usuario) {
-    throw new AppError('Usuário não encontrado.', 404);
+    throw new AppError('UsuÃ¡rio nÃ£o encontrado.', 404);
   }
 
   await Usuario.findByIdAndDelete(req.params.id);
@@ -169,13 +164,14 @@ exports.remover = asyncHandler(async (req, res) => {
     acao: 'EXCLUSAO',
     entidade: 'Usuario',
     registroId: usuario._id,
-    descricao: 'Usuário/coordenador removido.',
+    descricao: 'UsuÃ¡rio/coordenador removido.',
     dadosAnteriores: usuario,
     ipOrigem: req.ip,
     userAgent: req.get('User-Agent') || null
   });
 
   res.json({
-    message: 'Usuário removido com sucesso.'
+    message: 'UsuÃ¡rio removido com sucesso.'
   });
 });
+

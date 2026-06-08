@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 const { registrarAuditoria } = require('../services/audit.service');
 
@@ -31,7 +31,7 @@ async function register(req, res) {
       acao: 'CRIACAO',
       entidade: 'Usuario',
       registroId: usuario._id,
-      descricao: 'Usuário cadastrado no sistema.',
+      descricao: 'UsuÃ¡rio cadastrado no sistema.',
       dadosNovos: {
         codigoUsuario: usuario.codigoUsuario,
         nome: usuario.nome,
@@ -62,30 +62,38 @@ async function register(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validação.',
+        message: 'Erro de validaÃ§Ã£o.',
         errors
       });
     }
 
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao cadastrar usuário.' });
+    return res.status(500).json({ message: 'Erro ao cadastrar usuÃ¡rio.' });
   }
 }
 
 async function login(req, res) {
   try {
-    const { email, senha } = req.body;
+    const { email, codigoUsuario, matricula, senha } = req.body;
 
-    const usuario = await Usuario.findOne({ email }).select('+senhaHash');
+    const login = codigoUsuario || matricula || email;
+    const loginTexto = String(login || '').trim();
+    const usaCodigo = Boolean(codigoUsuario || matricula) || !loginTexto.includes('@');
+
+    const usuario = await Usuario.findOne(
+      usaCodigo
+        ? { codigoUsuario: loginTexto.toUpperCase() }
+        : { email: loginTexto.toLowerCase() }
+    ).select('+senhaHash');
 
     if (!usuario || !usuario.ativo) {
-      return res.status(401).json({ message: 'Credenciais inválidas.' });
+      return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
     }
 
     const senhaValida = await usuario.compararSenha(senha);
 
     if (!senhaValida) {
-      return res.status(401).json({ message: 'Credenciais inválidas.' });
+      return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
     }
 
     const token = gerarToken(usuario);
@@ -121,3 +129,4 @@ module.exports = {
   register,
   login
 };
+

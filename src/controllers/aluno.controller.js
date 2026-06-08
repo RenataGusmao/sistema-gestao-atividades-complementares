@@ -1,6 +1,7 @@
-const Aluno = require('../models/Aluno');
+﻿const Aluno = require('../models/Aluno');
 const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
+const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
 
 async function criar(req, res) {
@@ -67,7 +68,7 @@ async function criar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validação.',
+        message: 'Erro de validaÃ§Ã£o.',
         errors
       });
     }
@@ -93,7 +94,7 @@ async function buscarPorId(req, res) {
     const aluno = await Aluno.findById(req.params.id).populate('cursos.cursoId');
 
     if (!aluno) {
-      return res.status(404).json({ message: 'Aluno não encontrado.' });
+      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
     }
 
     return res.status(200).json(aluno);
@@ -108,7 +109,7 @@ async function atualizar(req, res) {
     const alunoAnterior = await Aluno.findById(req.params.id);
 
     if (!alunoAnterior) {
-      return res.status(404).json({ message: 'Aluno não encontrado.' });
+      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
     }
 
     const alunoAtualizado = await Aluno.findByIdAndUpdate(
@@ -143,7 +144,7 @@ async function atualizar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validação.',
+        message: 'Erro de validaÃ§Ã£o.',
         errors
       });
     }
@@ -158,7 +159,7 @@ async function remover(req, res) {
     const aluno = await Aluno.findById(req.params.id);
 
     if (!aluno) {
-      return res.status(404).json({ message: 'Aluno não encontrado.' });
+      return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
     }
 
     await Aluno.findByIdAndDelete(req.params.id);
@@ -220,7 +221,15 @@ async function listarMinhasAtividades(req, res) {
   }
 );
 
-    return res.status(200).json(atividades);
+    return res.status(200).json(atividades.map((atividade) => ({
+      _id: atividade._id,
+      titulo: atividade.titulo,
+      status: atividade.status,
+      cargaHoraria: atividade.cargaHorariaInformada,
+      cargaHorariaInformada: atividade.cargaHorariaInformada,
+      justificativaReprovacao: atividade.justificativaReprovacao,
+      dataCriacao: atividade.dataCriacao
+    })));
 
   } catch (error) {
     console.error(error);
@@ -231,6 +240,32 @@ async function listarMinhasAtividades(req, res) {
   }
 }
 
+async function listarCategoriasDisponiveis(req, res) {
+  try {
+    const cursoAlunoId = req.query.cursoId || req.aluno.cursos?.[0]?.cursoId;
+
+    if (!cursoAlunoId) {
+      return res.status(422).json({
+        message: 'Não foi possível identificar o curso do aluno.'
+      });
+    }
+
+    const categorias = await CategoriaAtividade
+      .find({ curso: cursoAlunoId, ativa: true })
+      .sort({ areaParametro: 1, nome: 1 });
+
+    return res.status(200).json({
+      cursoId: cursoAlunoId,
+      categorias
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao listar categorias disponíveis.'
+    });
+  }
+}
 async function submeterAtividade(req, res) {
   try {
     const {
@@ -239,16 +274,35 @@ async function submeterAtividade(req, res) {
       titulo,
       descricao,
       dataRealizacao,
-      cargaHorariaInformada
+      cargaHorariaInformada,
+      cargaHoraria
     } = req.body;
 
-    if (!req.files || req.files.length === 0) {
+    const arquivos = Array.isArray(req.files)
+      ? req.files
+      : [
+          ...(req.files?.anexos || []),
+          ...(req.files?.certificado || [])
+        ];
+
+    if (!arquivos || arquivos.length === 0) {
       return res.status(422).json({
-        message: 'É obrigatório anexar ao menos um certificado.'
+        message: 'Ã‰ obrigatÃ³rio anexar ao menos um certificado.'
       });
     }
 
-    const anexos = req.files.map(file => ({
+    const cursoAlunoId = cursoId || req.aluno.cursos?.[0]?.cursoId;
+    const categoria = categoriaId
+      ? await CategoriaAtividade.findById(categoriaId)
+      : await CategoriaAtividade.findOne({ curso: cursoAlunoId, ativa: true }).sort({ nome: 1 });
+
+    if (!cursoAlunoId || !categoria) {
+      return res.status(422).json({
+        message: 'Nao foi possivel identificar curso/categoria para a atividade.'
+      });
+    }
+
+    const anexos = arquivos.map(file => ({
       nomeArquivo: file.originalname,
       urlArquivo: `/uploads/${file.filename}`,
       tipoArquivo: file.mimetype,
@@ -257,12 +311,12 @@ async function submeterAtividade(req, res) {
 
     const atividade = await Atividade.create({
       alunoId: req.aluno._id,
-      cursoId,
-      categoriaId,
+      cursoId: cursoAlunoId,
+      categoriaId: categoria._id,
       titulo,
-      descricao,
-      dataRealizacao,
-      cargaHorariaInformada,
+      descricao: descricao || titulo,
+      dataRealizacao: dataRealizacao || new Date(),
+      cargaHorariaInformada: cargaHorariaInformada || cargaHoraria,
       anexos,
       status: 'Enviada'
     });
@@ -314,8 +368,12 @@ module.exports = {
   buscarPorId,
   dashboard,
   listarMinhasAtividades,
+  listarCategoriasDisponiveis,
   listarCertificados,
   submeterAtividade,
   atualizar,
   remover
 };
+
+
+
