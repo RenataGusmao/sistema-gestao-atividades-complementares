@@ -1,12 +1,13 @@
-const CategoriaAtividade = require('../models/CategoriaAtividade');
+﻿const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
+const { executarSeedCategoriasADS } = require('../services/seedCategoriasADS.service');
 
 async function criar(req, res) {
   try {
     const { curso, ...resto } = req.body;
 
     if (!curso) {
-      return res.status(400).json({ message: 'O curso é obrigatório.' });
+      return res.status(400).json({ message: 'O curso Ã© obrigatÃ³rio.' });
     }
 
     const categoria = await CategoriaAtividade.create({
@@ -39,7 +40,7 @@ async function criar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validação.',
+        message: 'Erro de validaÃ§Ã£o.',
         errors
       });
     }
@@ -84,7 +85,7 @@ async function buscarPorId(req, res) {
       .populate('curso');
 
     if (!categoria) {
-      return res.status(404).json({ message: 'Categoria não encontrada.' });
+      return res.status(404).json({ message: 'Categoria nÃ£o encontrada.' });
     }
 
     return res.status(200).json(categoria);
@@ -99,7 +100,7 @@ async function atualizar(req, res) {
     const categoriaAnterior = await CategoriaAtividade.findById(req.params.id);
 
     if (!categoriaAnterior) {
-      return res.status(404).json({ message: 'Categoria não encontrada.' });
+      return res.status(404).json({ message: 'Categoria nÃ£o encontrada.' });
     }
 
     const categoriaAtualizada = await CategoriaAtividade.findByIdAndUpdate(
@@ -134,7 +135,7 @@ async function atualizar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validação.',
+        message: 'Erro de validaÃ§Ã£o.',
         errors
       });
     }
@@ -149,7 +150,7 @@ async function remover(req, res) {
     const categoria = await CategoriaAtividade.findById(req.params.id);
 
     if (!categoria) {
-      return res.status(404).json({ message: 'Categoria não encontrada.' });
+      return res.status(404).json({ message: 'Categoria nÃ£o encontrada.' });
     }
 
     await CategoriaAtividade.findByIdAndDelete(req.params.id);
@@ -174,6 +175,39 @@ async function remover(req, res) {
   }
 }
 
+
+async function seedCategoriasADS(req, res) {
+  try {
+    const resultado = await executarSeedCategoriasADS();
+
+    if (req.user?._id) {
+      await registrarAuditoria({
+        usuarioId: req.user._id,
+        acao: 'CRIACAO',
+        entidade: 'CategoriaAtividade',
+        registroId: resultado.curso._id,
+        descricao: 'Seed oficial de categorias e regras ADS executado.',
+        dadosNovos: {
+          curso: resultado.curso._id,
+          categorias: resultado.categorias,
+          regras: resultado.regras
+        },
+        ipOrigem: req.ip,
+        userAgent: req.get('User-Agent') || null
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Categorias e regras oficiais ADS cadastradas/atualizadas com sucesso.',
+      curso: resultado.curso,
+      categorias: resultado.categorias,
+      regras: resultado.regras
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro ao executar seed de categorias ADS.' });
+  }
+}
 module.exports = {
   criar,
   listar,
