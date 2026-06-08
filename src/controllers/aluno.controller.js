@@ -6,7 +6,34 @@ const { registrarAuditoria } = require('../services/audit.service');
 
 async function criar(req, res) {
   try {
-    const aluno = await Aluno.create(req.body);
+    const { nome, email, cursos } = req.body;
+
+    if (!cursos || cursos.length === 0) {
+      return res.status(400).json({
+        message: 'O aluno deve estar vinculado a pelo menos um curso.'
+      });
+    }
+
+    for (const c of cursos) {
+      if (!c.matricula) {
+        return res.status(400).json({
+          message: 'Cada curso deve conter uma matrícula.'
+        });
+      }
+    }
+
+    const bcrypt = require('bcryptjs');
+    const senhaInicial = cursos[0].matricula;
+    const senhaHash = await bcrypt.hash(senhaInicial, 10);
+
+    const aluno = await Aluno.create({
+      nome,
+      email,
+      cursos,
+      senhaHash,
+      primeiroAcesso: true,
+      ativo: true
+    });
 
     if (req.user?._id) {
       await registrarAuditoria({
@@ -22,6 +49,7 @@ async function criar(req, res) {
     }
 
     return res.status(201).json(aluno);
+
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
@@ -29,6 +57,13 @@ async function criar(req, res) {
         fields: error.keyValue || {}
       });
     }
+
+    return res.status(500).json({
+      message: 'Erro ao criar aluno.',
+      error: error.message
+    });
+  }
+}
 
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
@@ -39,9 +74,10 @@ async function criar(req, res) {
     }
 
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao criar aluno.' });
-  }
-}
+    return res.status(500).json({ 
+      message: 'Erro ao criar aluno.' 
+    });
+  
 
 async function listar(req, res) {
   try {
