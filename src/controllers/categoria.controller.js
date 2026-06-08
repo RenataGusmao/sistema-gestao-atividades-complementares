@@ -213,5 +213,7 @@ module.exports = {
   listar,
   buscarPorId,
   atualizar,
-  remover
+  remover,
+  seedCategoriasADS
 };
+
