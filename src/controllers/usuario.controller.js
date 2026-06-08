@@ -63,15 +63,10 @@ exports.criar = asyncHandler(async (req, res) => {
     throw new AppError('Nome, e-mail e código/matrícula são obrigatórios.', 400);
   }
 
-  const usuarioExistente = await Usuario.findOne({
-    $or: [
-      { email },
-      { codigoUsuario: codigoFinal }
-    ]
-  });
+  const usuarioExistente = await Usuario.findOne({ codigoUsuario: codigoFinal });
 
   if (usuarioExistente) {
-    throw new AppError('JÃ¡ existe um usuÃ¡rio cadastrado com este e-mail.', 409);
+    throw new AppError('Já existe um usuário cadastrado com esta matrícula.', 409);
   }
 
   const usuario = await Usuario.create({
@@ -121,15 +116,7 @@ exports.atualizar = asyncHandler(async (req, res) => {
     throw new AppError('UsuÃ¡rio nÃ£o encontrado.', 404);
   }
 
-  if (email && email !== usuarioAnterior.email) {
-    const usuarioExistente = await Usuario.findOne({ email });
-
-    if (usuarioExistente) {
-      throw new AppError('JÃ¡ existe um usuÃ¡rio cadastrado com este e-mail.', 409);
-    }
-
-    usuarioAnterior.email = email;
-  }
+  if (email !== undefined) usuarioAnterior.email = email;
 
   if (codigoUsuario !== undefined) usuarioAnterior.codigoUsuario = codigoUsuario;
   if (nome !== undefined) usuarioAnterior.nome = nome;
@@ -187,3 +174,4 @@ exports.remover = asyncHandler(async (req, res) => {
     message: 'UsuÃ¡rio removido com sucesso.'
   });
 });
+

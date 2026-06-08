@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const perfisValidos = ['administrador', 'coordenador'];
@@ -18,31 +18,30 @@ const CursoCoordenadoSchema = new mongoose.Schema({
 const UsuarioSchema = new mongoose.Schema({
   codigoUsuario: {
     type: String,
-    required: [true, 'O código do usuário é obrigatório.'],
+    required: [true, 'O cÃ³digo do usuÃ¡rio Ã© obrigatÃ³rio.'],
     unique: true,
     trim: true,
     uppercase: true,
     maxlength: 30,
-    match: [/^[A-Z0-9]+$/, 'O código do usuário deve conter apenas letras e números.']
+    match: [/^[A-Z0-9]+$/, 'O cÃ³digo do usuÃ¡rio deve conter apenas letras e nÃºmeros.']
   },
   nome: {
     type: String,
-    required: [true, 'O nome é obrigatório.'],
+    required: [true, 'O nome Ã© obrigatÃ³rio.'],
     trim: true,
     maxlength: 150
   },
   email: {
     type: String,
-    required: [true, 'O e-mail é obrigatório.'],
-    unique: true,
+    required: [true, 'O e-mail Ã© obrigatÃ³rio.'],
     lowercase: true,
     trim: true,
     maxlength: 150,
-    match: [/^\S+@\S+\.\S+$/, 'Informe um e-mail válido.']
+    match: [/^\S+@\S+\.\S+$/, 'Informe um e-mail vÃ¡lido.']
   },
   senhaHash: {
     type: String,
-    required: [true, 'A senha é obrigatória.'],
+    required: [true, 'A senha Ã© obrigatÃ³ria.'],
     select: false
   },
   perfis: {
@@ -52,7 +51,7 @@ const UsuarioSchema = new mongoose.Schema({
       validator: function (value) {
         return Array.isArray(value) && value.length > 0;
       },
-      message: 'O usuário deve possuir ao menos um perfil.'
+      message: 'O usuÃ¡rio deve possuir ao menos um perfil.'
     }
   },
   cursosCoordenados: {
