@@ -6,14 +6,6 @@ const CursoVinculadoSchema = new mongoose.Schema({
     ref: 'Curso',
     required: true
   },
-
-  matricula: {
-    type: String,
-    required: true,
-    trim: true,
-    uppercase: true
-  },
-
   dataVinculo: {
     type: Date,
     default: Date.now
@@ -35,11 +27,14 @@ const AlunoSchema = new mongoose.Schema({
     maxlength: 150,
     match: [/^\S+@\S+\.\S+$/, 'Informe um e-mail válido.']
   },
-    primeiroAcesso: {
-    type: Boolean,
-    default: true
+  matricula: {
+    type: String,
+    required: [true, 'A matrícula é obrigatória.'],
+    unique: true,
+    trim: true,
+    uppercase: true,
+    maxlength: 30
   },
- 
   cursos: {
     type: [CursoVinculadoSchema],
     validate: {
