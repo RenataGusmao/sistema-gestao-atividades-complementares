@@ -1,6 +1,17 @@
 const Curso = require('../models/Curso');
 const { registrarAuditoria } = require('../services/audit.service');
 
+function coordenadorRestrito(req) {
+  const perfis = req.user?.perfis || [];
+  return perfis.includes('coordenador') && !perfis.includes('administrador');
+}
+
+function cursosCoordenadosIds(req) {
+  return (req.user?.cursosCoordenados || [])
+    .map((item) => item.cursoId)
+    .filter(Boolean);
+}
+
 async function criar(req, res) {
   try {
     const curso = await Curso.create(req.body);
@@ -42,7 +53,13 @@ async function criar(req, res) {
 
 async function listar(req, res) {
   try {
-    const cursos = await Curso.find().sort({ nome: 1 });
+    const filtro = {};
+
+    if (coordenadorRestrito(req)) {
+      filtro._id = { $in: cursosCoordenadosIds(req) };
+    }
+
+    const cursos = await Curso.find(filtro).sort({ nome: 1 });
     return res.status(200).json(cursos);
   } catch (error) {
     console.error(error);

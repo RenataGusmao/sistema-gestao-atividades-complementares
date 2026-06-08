@@ -5,6 +5,22 @@ const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
 
+function coordenadorRestrito(req) {
+  const perfis = req.user?.perfis || [];
+  return perfis.includes('coordenador') && !perfis.includes('administrador');
+}
+
+function cursosCoordenadosIds(req) {
+  return (req.user?.cursosCoordenados || [])
+    .map((item) => String(item.cursoId))
+    .filter(Boolean);
+}
+
+function cursoPermitidoParaCoordenador(req, cursoId) {
+  if (!coordenadorRestrito(req)) return true;
+  return cursosCoordenadosIds(req).includes(String(cursoId));
+}
+
 function normalizarMimeType(mimeType) {
   const permitidos = ['application/pdf', 'image/jpeg', 'image/png'];
   return permitidos.includes(mimeType) ? mimeType : null;
@@ -69,6 +85,10 @@ async function criar(req, res) {
       cargaHorariaInformada,
       anexos
     } = req.body;
+
+    if (!cursoPermitidoParaCoordenador(req, cursoId)) {
+      return res.status(403).json({ message: 'Coordenador não pode criar atividade fora dos cursos que coordena.' });
+    }
 
     const validacao = await validarReferencias({ alunoId, cursoId, categoriaId });
 
@@ -148,6 +168,16 @@ async function listar(req, res) {
     if (req.query.status) filtro.status = req.query.status;
     if (req.query.categoriaId) filtro.categoriaId = req.query.categoriaId;
 
+    if (coordenadorRestrito(req)) {
+      const permitidos = cursosCoordenadosIds(req);
+
+      if (req.query.cursoId && !permitidos.includes(String(req.query.cursoId))) {
+        return res.status(200).json([]);
+      }
+
+      filtro.cursoId = req.query.cursoId || { $in: permitidos };
+    }
+
     const atividades = await Atividade.find(filtro)
       .populate('alunoId')
       .populate('cursoId')
@@ -176,6 +206,10 @@ async function buscarPorId(req, res) {
       return res.status(404).json({ message: 'Atividade não encontrada.' });
     }
 
+    if (!cursoPermitidoParaCoordenador(req, atividade.cursoId?._id || atividade.cursoId)) {
+      return res.status(403).json({ message: 'Acesso negado à atividade informada.' });
+    }
+
     return res.status(200).json(atividade);
   } catch (error) {
     console.error(error);
@@ -189,6 +223,10 @@ async function atualizar(req, res) {
 
     if (!atividadeAnterior) {
       return res.status(404).json({ message: 'Atividade não encontrada.' });
+    }
+
+    if (!cursoPermitidoParaCoordenador(req, atividadeAnterior.cursoId)) {
+      return res.status(403).json({ message: 'Coordenador não pode alterar atividade fora dos cursos que coordena.' });
     }
 
     if (atividadeAnterior.status !== 'Enviada') {
@@ -270,6 +308,10 @@ async function remover(req, res) {
       return res.status(404).json({ message: 'Atividade não encontrada.' });
     }
 
+    if (!cursoPermitidoParaCoordenador(req, atividade.cursoId)) {
+      return res.status(403).json({ message: 'Coordenador não pode remover atividade fora dos cursos que coordena.' });
+    }
+
     if (atividade.status !== 'Enviada') {
       return res.status(422).json({
         message: 'A atividade só pode ser excluída enquanto estiver com status Enviada.'
@@ -311,6 +353,10 @@ async function atualizarStatus(req, res) {
 
     if (!atividade) {
       return res.status(404).json({ message: 'Atividade não encontrada.' });
+    }
+
+    if (!cursoPermitidoParaCoordenador(req, atividade.cursoId)) {
+      return res.status(403).json({ message: 'Coordenador não pode validar atividade fora dos cursos que coordena.' });
     }
 
     const statusPermitidos = ['Em análise', 'Aprovada', 'Reprovada'];

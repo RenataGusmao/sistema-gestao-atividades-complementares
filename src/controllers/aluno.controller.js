@@ -4,8 +4,42 @@ const Certificado = require('../models/Certificado');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
 
+function coordenadorRestrito(req) {
+  const perfis = req.user?.perfis || [];
+  return perfis.includes('coordenador') && !perfis.includes('administrador');
+}
+
+function cursosCoordenadosIds(req) {
+  return (req.user?.cursosCoordenados || [])
+    .map((item) => String(item.cursoId))
+    .filter(Boolean);
+}
+
+function cursosDoPayload(body = {}) {
+  return (body.cursos || [])
+    .map((item) => String(item.cursoId || item))
+    .filter(Boolean);
+}
+
+function alunoPertenceAoCoordenador(aluno, idsPermitidos) {
+  return (aluno?.cursos || []).some((item) => idsPermitidos.includes(String(item.cursoId)));
+}
+
+function payloadCursosPermitidos(req) {
+  if (!coordenadorRestrito(req)) return true;
+
+  const permitidos = cursosCoordenadosIds(req);
+  const solicitados = cursosDoPayload(req.body);
+
+  return solicitados.length > 0 && solicitados.every((id) => permitidos.includes(id));
+}
+
 async function criar(req, res) {
   try {
+    if (!payloadCursosPermitidos(req)) {
+      return res.status(403).json({ message: 'Coordenador não pode cadastrar aluno fora dos cursos que coordena.' });
+    }
+
     const aluno = await Aluno.create(req.body);
 
     if (req.user?._id) {
@@ -45,7 +79,13 @@ async function criar(req, res) {
 
 async function listar(req, res) {
   try {
-    const alunos = await Aluno.find().populate('cursos.cursoId').sort({ nome: 1 });
+    const filtro = {};
+
+    if (coordenadorRestrito(req)) {
+      filtro['cursos.cursoId'] = { $in: cursosCoordenadosIds(req) };
+    }
+
+    const alunos = await Aluno.find(filtro).populate('cursos.cursoId').sort({ nome: 1 });
     return res.status(200).json(alunos);
   } catch (error) {
     console.error(error);
@@ -61,6 +101,10 @@ async function buscarPorId(req, res) {
       return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
     }
 
+    if (coordenadorRestrito(req) && !alunoPertenceAoCoordenador(aluno, cursosCoordenadosIds(req))) {
+      return res.status(403).json({ message: 'Acesso negado ao aluno informado.' });
+    }
+
     return res.status(200).json(aluno);
   } catch (error) {
     console.error(error);
@@ -74,6 +118,14 @@ async function atualizar(req, res) {
 
     if (!alunoAnterior) {
       return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+    }
+
+    if (coordenadorRestrito(req)) {
+      const permitidos = cursosCoordenadosIds(req);
+
+      if (!alunoPertenceAoCoordenador(alunoAnterior, permitidos) || !payloadCursosPermitidos(req)) {
+        return res.status(403).json({ message: 'Coordenador não pode alterar aluno fora dos cursos que coordena.' });
+      }
     }
 
     const alunoAtualizado = await Aluno.findByIdAndUpdate(
@@ -124,6 +176,10 @@ async function remover(req, res) {
 
     if (!aluno) {
       return res.status(404).json({ message: 'Aluno nÃ£o encontrado.' });
+    }
+
+    if (coordenadorRestrito(req) && !alunoPertenceAoCoordenador(aluno, cursosCoordenadosIds(req))) {
+      return res.status(403).json({ message: 'Coordenador não pode remover aluno fora dos cursos que coordena.' });
     }
 
     await Aluno.findByIdAndDelete(req.params.id);
@@ -338,6 +394,5 @@ module.exports = {
   atualizar,
   remover
 };
-
 
 

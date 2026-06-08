@@ -10,6 +10,25 @@ function gerarToken(usuario) {
   );
 }
 
+function usuarioPublico(usuario) {
+  const cursosCoordenados = Array.isArray(usuario.cursosCoordenados)
+    ? usuario.cursosCoordenados.map((item) => ({
+        cursoId: item.cursoId,
+        dataVinculo: item.dataVinculo
+      }))
+    : [];
+
+  return {
+    id: usuario._id,
+    codigoUsuario: usuario.codigoUsuario,
+    nome: usuario.nome,
+    email: usuario.email,
+    perfis: usuario.perfis,
+    cursosCoordenados,
+    ativo: usuario.ativo
+  };
+}
+
 async function register(req, res) {
   try {
     const { codigoUsuario, nome, email, senha, perfis, cursosCoordenados, ativo } = req.body;
@@ -84,7 +103,9 @@ async function login(req, res) {
       usaCodigo
         ? { codigoUsuario: loginTexto.toUpperCase() }
         : { email: loginTexto.toLowerCase() }
-    ).select('+senhaHash');
+    )
+      .select('+senhaHash')
+      .populate('cursosCoordenados.cursoId');
 
     if (!usuario || !usuario.ativo) {
       return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
@@ -110,14 +131,7 @@ async function login(req, res) {
 
     return res.status(200).json({
       token,
-      usuario: {
-        id: usuario._id,
-        codigoUsuario: usuario.codigoUsuario,
-        nome: usuario.nome,
-        email: usuario.email,
-        perfis: usuario.perfis,
-        ativo: usuario.ativo
-      }
+      usuario: usuarioPublico(usuario)
     });
   } catch (error) {
     console.error(error);
@@ -125,8 +139,27 @@ async function login(req, res) {
   }
 }
 
+async function me(req, res) {
+  try {
+    const usuario = await Usuario.findById(req.user._id)
+      .select('-senhaHash')
+      .populate('cursosCoordenados.cursoId');
+
+    if (!usuario || !usuario.ativo) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    return res.status(200).json({
+      usuario: usuarioPublico(usuario)
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro ao buscar usuário autenticado.' });
+  }
+}
+
 module.exports = {
   register,
-  login
+  login,
+  me
 };
-
