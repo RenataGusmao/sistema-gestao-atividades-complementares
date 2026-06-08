@@ -76,14 +76,15 @@ async function login(req, res) {
   try {
     const { email, codigoUsuario, matricula, senha } = req.body;
 
-    const login = email || codigoUsuario || matricula;
+    const login = codigoUsuario || matricula || email;
+    const loginTexto = String(login || '').trim();
+    const usaCodigo = Boolean(codigoUsuario || matricula) || !loginTexto.includes('@');
 
-    const usuario = await Usuario.findOne({
-      $or: [
-        { email: String(login || '').toLowerCase().trim() },
-        { codigoUsuario: String(login || '').toUpperCase().trim() }
-      ]
-    }).select('+senhaHash');
+    const usuario = await Usuario.findOne(
+      usaCodigo
+        ? { codigoUsuario: loginTexto.toUpperCase() }
+        : { email: loginTexto.toLowerCase() }
+    ).select('+senhaHash');
 
     if (!usuario || !usuario.ativo) {
       return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
@@ -128,3 +129,4 @@ module.exports = {
   register,
   login
 };
+

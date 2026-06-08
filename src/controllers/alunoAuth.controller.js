@@ -1,9 +1,9 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 const Aluno = require('../models/Aluno');
 const { registrarAuditoria } = require('../services/audit.service');
 
 function gerarToken(aluno) {
-    return jwt.sign(
+  return jwt.sign(
     {
       sub: aluno._id,
       perfil: 'aluno',
@@ -14,15 +14,28 @@ function gerarToken(aluno) {
   );
 }
 
+function montarFiltroAluno({ matricula, email }) {
+  const matriculaLimpa = matricula ? String(matricula).trim().toUpperCase() : '';
+  const emailLimpo = email ? String(email).trim().toLowerCase() : '';
+
+  if (matriculaLimpa && !matriculaLimpa.includes('@')) {
+    return {
+      filtro: { matricula: matriculaLimpa },
+      emailLimpo
+    };
+  }
+
+  return {
+    filtro: { email: emailLimpo },
+    emailLimpo
+  };
+}
+
 async function login(req, res) {
   try {
     const { matricula, email, senha } = req.body;
 
-    const filtro = matricula && email
-      ? { $or: [{ matricula }, { email }] }
-      : matricula
-        ? { matricula }
-        : { email };
+    const { filtro } = montarFiltroAluno({ matricula, email });
 
     const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
@@ -72,17 +85,20 @@ async function login(req, res) {
 
 async function primeiroAcesso(req, res) {
   try {
-    const { matricula, email, senha } = req.body;
+    const { matricula, email, senha, novaSenha } = req.body;
+    const senhaPrimeiroAcesso = senha || novaSenha;
 
-    const filtro = matricula && email
-      ? { $or: [{ matricula }, { email }] }
-      : matricula
-        ? { matricula }
-        : { email };
+    const { filtro, emailLimpo } = montarFiltroAluno({ matricula, email });
 
     const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno) {
+      return res.status(404).json({
+        message: 'Aluno não encontrado.'
+      });
+    }
+
+    if (emailLimpo && aluno.email !== emailLimpo) {
       return res.status(404).json({
         message: 'Aluno não encontrado.'
       });
@@ -94,7 +110,7 @@ async function primeiroAcesso(req, res) {
       });
     }
 
-    aluno.senhaHash = senha;
+    aluno.senhaHash = senhaPrimeiroAcesso;
 
     await aluno.save();
 
@@ -110,7 +126,6 @@ async function primeiroAcesso(req, res) {
     });
   }
 }
-
 
 module.exports = {
   login,
