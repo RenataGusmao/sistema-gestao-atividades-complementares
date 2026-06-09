@@ -50,7 +50,7 @@ async function register(req, res) {
       acao: 'CRIACAO',
       entidade: 'Usuario',
       registroId: usuario._id,
-      descricao: 'UsuÃ¡rio cadastrado no sistema.',
+      descricao: 'Usuário cadastrado no sistema.',
       dadosNovos: {
         codigoUsuario: usuario.codigoUsuario,
         nome: usuario.nome,
@@ -81,13 +81,13 @@ async function register(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validaÃ§Ã£o.',
+        message: 'Erro de validação.',
         errors
       });
     }
 
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao cadastrar usuÃ¡rio.' });
+    return res.status(500).json({ message: 'Erro ao cadastrar usuário.' });
   }
 }
 
@@ -108,13 +108,13 @@ async function login(req, res) {
       .populate('cursosCoordenados.cursoId');
 
     if (!usuario || !usuario.ativo) {
-      return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
+      return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
     const senhaValida = await usuario.compararSenha(senha);
 
     if (!senhaValida) {
-      return res.status(401).json({ message: 'Credenciais invÃ¡lidas.' });
+      return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
     const token = gerarToken(usuario);
