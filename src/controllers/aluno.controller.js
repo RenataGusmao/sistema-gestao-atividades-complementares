@@ -67,7 +67,7 @@ async function criar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validaÃ§Ã£o.',
+        message: 'Erro de validação.',
         errors
       });
     }
@@ -160,7 +160,7 @@ async function atualizar(req, res) {
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(422).json({
-        message: 'Erro de validaÃ§Ã£o.',
+        message: 'Erro de validação.',
         errors
       });
     }
@@ -307,7 +307,7 @@ async function submeterAtividade(req, res) {
 
     if (!arquivos || arquivos.length === 0) {
       return res.status(422).json({
-        message: 'Ã‰ obrigatÃ³rio anexar ao menos um certificado.'
+        message: 'É obrigatório anexar ao menos um certificado.'
       });
     }
 
@@ -318,7 +318,7 @@ async function submeterAtividade(req, res) {
 
     if (!cursoAlunoId || !categoria) {
       return res.status(422).json({
-        message: 'Nao foi possivel identificar curso/categoria para a atividade.'
+        message: 'Não foi possível identificar curso/categoria para a atividade.'
       });
     }
 
