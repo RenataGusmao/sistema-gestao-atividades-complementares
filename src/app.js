@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -39,7 +39,7 @@ const limiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas requisiÃ§Ãµes. Tente novamente mais tarde.' }
+  message: { message: 'Muitas requisições. Tente novamente mais tarde.' }
 });
 app.use('/api', limiter);
 
@@ -48,7 +48,7 @@ const authLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Muitas tentativas de autenticaÃ§Ã£o. Aguarde alguns minutos.' }
+  message: { message: 'Muitas tentativas de autenticação. Aguarde alguns minutos.' }
 });
 app.use('/api/auth', authLimiter);
 
@@ -77,7 +77,7 @@ app.use('/api/auditoria', auditoriaRoutes);
 
 // 404
 app.use((req, res) => {
-  res.status(404).json({ message: 'Rota nÃ£o encontrada.' });
+  res.status(404).json({ message: 'Rota não encontrada.' });
 });
 
 // error handler
