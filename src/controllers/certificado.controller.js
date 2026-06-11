@@ -1,7 +1,8 @@
 const Certificado = require('../models/Certificado');
+const Usuario = require('../models/Usuario');
 const AppError = require('../utils/AppError');
 const { uploadBuffer } = require('../services/storage.service');
-
+const { enviarEmail } = require('../services/email.service');
 
 exports.uploadCertificado = async (req, res, next) => {
   try {
@@ -27,6 +28,22 @@ exports.uploadCertificado = async (req, res, next) => {
       enviadoPor: req.user.id
     });
 
+    const coordenadores = await Usuario.find({
+      perfis: 'coordenador',
+      ativo: true
+    });
+
+    for (const coordenador of coordenadores) {
+      await enviarEmail({
+        to: coordenador.email,
+        subject: 'Novo certificado enviado',
+        text: `Um novo certificado foi enviado para análise.
+
+Arquivo: ${req.file.originalname}
+Aluno ID: ${alunoId}`
+      });
+    }
+
     res.status(201).json({
       message: 'Certificado enviado com sucesso',
       certificado
@@ -35,7 +52,6 @@ exports.uploadCertificado = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.listarPorAluno = async (req, res, next) => {
   try {
@@ -48,7 +64,6 @@ exports.listarPorAluno = async (req, res, next) => {
     next(error);
   }
 };
-
 
 exports.deletarCertificado = async (req, res, next) => {
   try {
