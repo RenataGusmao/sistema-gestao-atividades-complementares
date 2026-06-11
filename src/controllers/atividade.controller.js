@@ -1,6 +1,7 @@
 const Atividade = require('../models/Atividade');
 const Aluno = require('../models/Aluno');
 const Curso = require('../models/Curso');
+const Usuario = require('../models/Usuario');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
@@ -82,6 +83,15 @@ async function validarReferencias({ alunoId, cursoId, categoriaId }) {
   return { ok: true, aluno, curso, categoria };
 }
 
+async function buscarEmailsCoordenadores(cursoId) {
+  const coordenadores = await Usuario.find({
+    'cursosCoordenados.cursoId': cursoId,
+    ativo: true
+  }).select('email');
+
+  return coordenadores.map((c) => c.email).filter(Boolean);
+}
+
 async function criar(req, res) {
   try {
     const {
@@ -144,6 +154,30 @@ async function criar(req, res) {
         ipOrigem: req.ip,
         userAgent: req.get('User-Agent') || null
       });
+    }
+
+    try {
+      const emailsCoordenadores = await buscarEmailsCoordenadores(cursoId);
+
+      if (emailsCoordenadores.length > 0) {
+        await enviarEmail({
+          to: emailsCoordenadores.join(','),
+          subject: `Nova atividade submetida - ${validacao.curso.nome}`,
+          text: `Uma nova atividade complementar foi submetida e aguarda análise.
+
+Aluno: ${validacao.aluno.nome}
+Curso: ${validacao.curso.nome}
+Título: ${titulo}
+Carga horária informada: ${cargaHorariaInformada} horas
+
+Acesse o sistema para aprovar ou reprovar a atividade.
+
+Atenciosamente,
+Sistema Acadêmico`
+        });
+      }
+    } catch (emailError) {
+      console.error('[EMAIL] Falha ao notificar coordenadores sobre nova atividade:', emailError.message);
     }
 
     return res.status(201).json(atividade);
@@ -427,13 +461,13 @@ async function atualizarStatus(req, res) {
 
     await atividade.save();
 
-const aluno = await Aluno.findById(atividade.alunoId);
+    const aluno = await Aluno.findById(atividade.alunoId);
 
-if (aluno?.email) {
-  let mensagem = '';
+    if (aluno?.email) {
+      let mensagem = '';
 
-  if (status === 'Aprovada') {
-    mensagem = `Olá ${aluno.nome},
+      if (status === 'Aprovada') {
+        mensagem = `Olá ${aluno.nome},
 
 Sua atividade "${atividade.titulo}" foi aprovada.
 
@@ -441,8 +475,8 @@ Carga horária validada: ${atividade.cargaHorariaValidada} horas.
 
 Atenciosamente,
 Sistema Acadêmico`;
-  } else if (status === 'Reprovada') {
-    mensagem = `Olá ${aluno.nome},
+      } else if (status === 'Reprovada') {
+        mensagem = `Olá ${aluno.nome},
 
 Sua atividade "${atividade.titulo}" foi reprovada.
 
@@ -451,23 +485,27 @@ ${justificativaReprovacao}
 
 Atenciosamente,
 Sistema Acadêmico`;
-  } else {
-    mensagem = `Olá ${aluno.nome},
+      } else {
+        mensagem = `Olá ${aluno.nome},
 
 Sua atividade "${atividade.titulo}" está em análise.
 
 Atenciosamente,
 Sistema Acadêmico`;
-  }
+      }
 
-  await enviarEmail({
-    to: aluno.email,
-    subject: `Atualização da atividade - ${status}`,
-    text: mensagem
-  });
-}
+      try {
+        await enviarEmail({
+          to: aluno.email,
+          subject: `Atualização da atividade - ${status}`,
+          text: mensagem
+        });
+      } catch (emailError) {
+        console.error('[EMAIL] Falha ao notificar aluno sobre atualização de status:', emailError.message);
+      }
+    }
 
-if (req.user?._id) {
+    if (req.user?._id) {
       await registrarAuditoria({
         usuarioId: req.user._id,
         acao: status === 'Aprovada'
