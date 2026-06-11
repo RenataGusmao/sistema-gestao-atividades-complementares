@@ -5,6 +5,7 @@ const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos } = require('../services/storage.service');
+const { notificarAlunoStatusAtividade } = require('../services/notification.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -442,6 +443,8 @@ async function atualizarStatus(req, res) {
         userAgent: req.get('User-Agent') || null
       });
     }
+
+    await notificarAlunoStatusAtividade(atividade);
 
     return res.status(200).json(atividade);
   } catch (error) {

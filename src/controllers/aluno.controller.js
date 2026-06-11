@@ -1,9 +1,10 @@
-﻿const Aluno = require('../models/Aluno');
+const Aluno = require('../models/Aluno');
 const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos } = require('../services/storage.service');
+const { notificarCoordenadoresNovaAtividade } = require('../services/notification.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -361,6 +362,8 @@ async function submeterAtividade(req, res) {
         resourceType: anexo.resourceType
       });
     }
+
+    await notificarCoordenadoresNovaAtividade(atividade);
 
     return res.status(201).json(atividade);
 
