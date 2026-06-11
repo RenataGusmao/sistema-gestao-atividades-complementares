@@ -4,18 +4,26 @@ const Curso = require('../models/Curso');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
+const { uploadArquivos } = require('../services/storage.service');
 
 function normalizarMimeType(mimeType) {
   const permitidos = ['application/pdf', 'image/jpeg', 'image/png'];
   return permitidos.includes(mimeType) ? mimeType : null;
 }
 
-function montarAnexosDoUpload(files = []) {
-  return files.map((file) => ({
+async function montarAnexosDoUpload(files = [], contexto = {}) {
+  const uploads = await uploadArquivos(files, {
+    folderParts: ['atividades', contexto.alunoId, contexto.cursoId]
+  });
+
+  return files.map((file, index) => ({
     nomeArquivo: file.originalname,
-    urlArquivo: `/uploads/${file.filename}`,
+    urlArquivo: uploads[index].url,
     tipoArquivo: normalizarMimeType(file.mimetype),
-    tamanhoBytes: file.size
+    tamanhoBytes: uploads[index].bytes || file.size,
+    storageProvider: uploads[index].provider,
+    storageKey: uploads[index].storageKey,
+    resourceType: uploads[index].resourceType
   }));
 }
 
@@ -79,7 +87,7 @@ async function criar(req, res) {
     let anexosNormalizados = [];
 
     if (req.files && req.files.length > 0) {
-      anexosNormalizados = montarAnexosDoUpload(req.files);
+      anexosNormalizados = await montarAnexosDoUpload(req.files, { alunoId, cursoId });
     } else if (Array.isArray(anexos)) {
       anexosNormalizados = montarAnexosDoBody(anexos);
     }
@@ -215,7 +223,7 @@ async function atualizar(req, res) {
     });
 
     if (req.files && req.files.length > 0) {
-      payload.anexos = montarAnexosDoUpload(req.files);
+      payload.anexos = await montarAnexosDoUpload(req.files, { alunoId: atividadeAnterior.alunoId, cursoId: atividadeAnterior.cursoId });
     } else if (Array.isArray(payload.anexos)) {
       payload.anexos = montarAnexosDoBody(payload.anexos);
     }

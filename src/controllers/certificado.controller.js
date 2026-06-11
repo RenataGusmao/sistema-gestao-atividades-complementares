@@ -1,5 +1,6 @@
 const Certificado = require('../models/Certificado');
 const AppError = require('../utils/AppError');
+const { uploadBuffer } = require('../services/storage.service');
 
 
 exports.uploadCertificado = async (req, res, next) => {
@@ -10,11 +11,20 @@ exports.uploadCertificado = async (req, res, next) => {
       return next(new AppError('Arquivo não enviado', 400));
     }
 
+    const upload = await uploadBuffer(req.file, {
+      folderParts: ['certificados', alunoId]
+    });
+
     const certificado = await Certificado.create({
       aluno: alunoId,
       nomeArquivo: req.file.originalname,
-      caminho: `/uploads/${req.file.filename}`,
-      enviadoPor: req.user.id 
+      caminho: upload.url,
+      tipoArquivo: req.file.mimetype,
+      tamanhoBytes: upload.bytes || req.file.size,
+      storageProvider: upload.provider,
+      storageKey: upload.storageKey,
+      resourceType: upload.resourceType,
+      enviadoPor: req.user.id
     });
 
     res.status(201).json({
