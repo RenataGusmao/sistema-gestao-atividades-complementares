@@ -5,6 +5,7 @@ const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos } = require('../services/storage.service');
+const { enviarEmail } = require('../services/email.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -426,7 +427,47 @@ async function atualizarStatus(req, res) {
 
     await atividade.save();
 
-    if (req.user?._id) {
+const aluno = await Aluno.findById(atividade.alunoId);
+
+if (aluno?.email) {
+  let mensagem = '';
+
+  if (status === 'Aprovada') {
+    mensagem = `Olá ${aluno.nome},
+
+Sua atividade "${atividade.titulo}" foi aprovada.
+
+Carga horária validada: ${atividade.cargaHorariaValidada} horas.
+
+Atenciosamente,
+Sistema Acadêmico`;
+  } else if (status === 'Reprovada') {
+    mensagem = `Olá ${aluno.nome},
+
+Sua atividade "${atividade.titulo}" foi reprovada.
+
+Justificativa:
+${justificativaReprovacao}
+
+Atenciosamente,
+Sistema Acadêmico`;
+  } else {
+    mensagem = `Olá ${aluno.nome},
+
+Sua atividade "${atividade.titulo}" está em análise.
+
+Atenciosamente,
+Sistema Acadêmico`;
+  }
+
+  await enviarEmail({
+    to: aluno.email,
+    subject: `Atualização da atividade - ${status}`,
+    text: mensagem
+  });
+}
+
+if (req.user?._id) {
       await registrarAuditoria({
         usuarioId: req.user._id,
         acao: status === 'Aprovada'

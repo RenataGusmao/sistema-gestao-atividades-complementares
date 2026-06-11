@@ -3,6 +3,7 @@ const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const { registrarAuditoria } = require('../services/audit.service');
 
+
 function formatarCursosCoordenados(cursosCoordenados = []) {
   if (!Array.isArray(cursosCoordenados)) return [];
 
