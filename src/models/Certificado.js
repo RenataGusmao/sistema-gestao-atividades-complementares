@@ -8,6 +8,11 @@ const certificadoSchema = new mongoose.Schema({
   },
   nomeArquivo: String,
   caminho: String,
+  tipoArquivo: String,
+  tamanhoBytes: Number,
+  storageProvider: String,
+  storageKey: String,
+  resourceType: String,
   dataEnvio: {
     type: Date,
     default: Date.now

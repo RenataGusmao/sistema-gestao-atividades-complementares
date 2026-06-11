@@ -57,6 +57,18 @@ const anexoSchema = new mongoose.Schema({
     required: true,
     max: 10 * 1024 * 1024
   },
+  storageProvider: {
+    type: String,
+    trim: true
+  },
+  storageKey: {
+    type: String,
+    trim: true
+  },
+  resourceType: {
+    type: String,
+    trim: true
+  },
   dataUpload: {
     type: Date,
     default: Date.now

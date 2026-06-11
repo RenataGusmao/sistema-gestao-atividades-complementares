@@ -3,6 +3,7 @@ const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const { registrarAuditoria } = require('../services/audit.service');
+const { uploadArquivos } = require('../services/storage.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -322,11 +323,18 @@ async function submeterAtividade(req, res) {
       });
     }
 
-    const anexos = arquivos.map(file => ({
+    const uploads = await uploadArquivos(arquivos, {
+      folderParts: ['alunos', req.aluno._id, cursoAlunoId]
+    });
+
+    const anexos = arquivos.map((file, index) => ({
       nomeArquivo: file.originalname,
-      urlArquivo: `/uploads/${file.filename}`,
+      urlArquivo: uploads[index].url,
       tipoArquivo: file.mimetype,
-      tamanhoBytes: file.size
+      tamanhoBytes: uploads[index].bytes || file.size,
+      storageProvider: uploads[index].provider,
+      storageKey: uploads[index].storageKey,
+      resourceType: uploads[index].resourceType
     }));
 
     const atividade = await Atividade.create({
@@ -345,7 +353,12 @@ async function submeterAtividade(req, res) {
       await Certificado.create({
         aluno: req.aluno._id,
         nomeArquivo: anexo.nomeArquivo,
-        caminho: anexo.urlArquivo
+        caminho: anexo.urlArquivo,
+        tipoArquivo: anexo.tipoArquivo,
+        tamanhoBytes: anexo.tamanhoBytes,
+        storageProvider: anexo.storageProvider,
+        storageKey: anexo.storageKey,
+        resourceType: anexo.resourceType
       });
     }
 
