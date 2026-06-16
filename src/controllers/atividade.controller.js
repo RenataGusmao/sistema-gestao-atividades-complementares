@@ -1,13 +1,14 @@
 const Atividade = require('../models/Atividade');
 const Aluno = require('../models/Aluno');
 const Curso = require('../models/Curso');
-const Usuario = require('../models/Usuario');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos, signedDownloadUrls } = require('../services/storage.service');
-const { enviarEmail } = require('../services/email.service');
-const { notificarAlunoStatusAtividade } = require('../services/notificacaoAtividade.service');
+const {
+  notificarAlunoStatusAtividade,
+  notificarResponsaveisNovaAtividade
+} = require('../services/notificacaoAtividade.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -114,15 +115,6 @@ async function validarReferencias({ alunoId, cursoId, categoriaId }) {
   return { ok: true, aluno, curso, categoria };
 }
 
-async function buscarEmailsCoordenadores(cursoId) {
-  const coordenadores = await Usuario.find({
-    'cursosCoordenados.cursoId': cursoId,
-    ativo: true
-  }).select('email');
-
-  return coordenadores.map((c) => c.email).filter(Boolean);
-}
-
 async function criar(req, res) {
   try {
     const {
@@ -187,30 +179,13 @@ async function criar(req, res) {
       });
     }
 
-    try {
-      const emailsCoordenadores = await buscarEmailsCoordenadores(cursoId);
-
-      if (emailsCoordenadores.length > 0) {
-        await enviarEmail({
-          to: emailsCoordenadores.join(','),
-          subject: `Nova atividade submetida - ${validacao.curso.nome}`,
-          text: `Uma nova atividade complementar foi submetida e aguarda análise.
-
-Aluno: ${validacao.aluno.nome}
-Curso: ${validacao.curso.nome}
-Título: ${titulo}
-Carga horária informada: ${cargaHorariaInformada} horas
-
-Acesse o sistema para aprovar ou reprovar a atividade.
-
-Atenciosamente,
-Sistema Acadêmico`
-        });
-      }
-    } catch (emailError) {
-      console.error('[EMAIL] Falha ao notificar coordenadores sobre nova atividade:', emailError.message);
-    }
-
+    notificarResponsaveisNovaAtividade({
+      aluno: validacao.aluno,
+      curso: validacao.curso,
+      atividade
+    }).catch((emailError) => {
+      console.error('[EMAIL] Falha ao notificar responsaveis sobre nova atividade:', emailError.message);
+    });
     return res.status(201).json(atividade);
   } catch (error) {
     if (error.code === 11000) {
