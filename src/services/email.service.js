@@ -1,19 +1,43 @@
 const nodemailer = require('nodemailer');
+const AppError = require('../utils/AppError');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT) || 587,
-  secure: process.env.MAIL_SECURE === 'true',
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+let transporter = null;
+
+function assertMailConfig() {
+  const missing = ['MAIL_HOST', 'MAIL_USER', 'MAIL_PASS']
+    .filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    throw new AppError(`Envio de e-mail nao configurado. Defina: ${missing.join(', ')}.`, 500);
+  }
+}
+
+function getTransporter() {
+  assertMailConfig();
+
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST,
+      port: Number(process.env.MAIL_PORT) || 587,
+      secure: process.env.MAIL_SECURE === 'true',
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+    });
+  }
+
+  return transporter;
+}
 
 async function enviarEmail({ to, subject, text }) {
   try {
-    await transporter.sendMail({
-      from: `Sistema Acadêmico <${process.env.MAIL_USER}>`,
+    if (!to) {
+      return null;
+    }
+
+    return await getTransporter().sendMail({
+      from: process.env.MAIL_FROM || `Sistema Academico <${process.env.MAIL_USER}>`,
       to,
       subject,
       text

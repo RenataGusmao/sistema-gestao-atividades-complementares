@@ -7,6 +7,7 @@ const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos, signedDownloadUrls } = require('../services/storage.service');
 const { enviarEmail } = require('../services/email.service');
+const { notificarAlunoStatusAtividade } = require('../services/notificacaoAtividade.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -533,69 +534,18 @@ async function atualizarStatus(req, res) {
 
     await atividade.save();
 
-    const isSuperAdmin = (req.user?.perfis || []).includes('superAdmin');
     const aluno = await Aluno.findById(atividade.alunoId);
 
-    function montarMensagemAluno(nomeAluno) {
-      if (status === 'Aprovada') {
-        return `Olá ${nomeAluno},\n\nSua atividade "${atividade.titulo}" foi aprovada.\n\nCarga horária validada: ${atividade.cargaHorariaValidada} horas.\n\nAtenciosamente,\nSistema Acadêmico`;
-      }
-      if (status === 'Reprovada') {
-        return `Olá ${nomeAluno},\n\nSua atividade "${atividade.titulo}" foi reprovada.\n\nJustificativa:\n${justificativaReprovacao}\n\nAtenciosamente,\nSistema Acadêmico`;
-      }
-      return `Olá ${nomeAluno},\n\nSua atividade "${atividade.titulo}" está em análise.\n\nAtenciosamente,\nSistema Acadêmico`;
+    try {
+      await notificarAlunoStatusAtividade({
+        aluno,
+        atividade,
+        status,
+        justificativaReprovacao
+      });
+    } catch (emailError) {
+      console.error('[EMAIL] Falha ao notificar aluno sobre atualizacao de status:', emailError.message);
     }
-
-    function montarMensagemCoordenador(nomeCurso, nomeAluno) {
-      const labelStatus = status === 'Aprovada'
-        ? 'aprovada'
-        : status === 'Reprovada'
-          ? 'reprovada'
-          : 'colocada em análise';
-
-      const linhaJustificativa = status === 'Reprovada'
-        ? `\nJustificativa: ${justificativaReprovacao}`
-        : '';
-
-      const linhaCarga = status === 'Aprovada'
-        ? `\nCarga horária validada: ${atividade.cargaHorariaValidada} horas.`
-        : '';
-
-      return `Informamos que a atividade complementar abaixo foi ${labelStatus} pelo Administrador do sistema.\n\nAluno: ${nomeAluno}\nCurso: ${nomeCurso}\nTítulo: ${atividade.titulo}${linhaCarga}${linhaJustificativa}\n\nAtenciosamente,\nSistema Acadêmico`;
-    }
-
-    const emailPromises = [];
-
-    if (aluno?.email) {
-      emailPromises.push(
-        enviarEmail({
-          to: aluno.email,
-          subject: `Atualização da atividade - ${status}`,
-          text: montarMensagemAluno(aluno.nome)
-        }).catch((err) => {
-          console.error('[EMAIL] Falha ao notificar aluno sobre atualização de status:', err.message);
-        })
-      );
-    }
-
-    if (isSuperAdmin) {
-      const curso = await Curso.findById(atividade.cursoId);
-      const emailsCoordenadores = await buscarEmailsCoordenadores(atividade.cursoId);
-
-      if (emailsCoordenadores.length > 0) {
-        emailPromises.push(
-          enviarEmail({
-            to: emailsCoordenadores.join(','),
-            subject: `Atividade ${status} pelo Administrador - ${curso?.nome ?? ''}`,
-            text: montarMensagemCoordenador(curso?.nome ?? 'N/A', aluno?.nome ?? 'N/A')
-          }).catch((err) => {
-            console.error('[EMAIL] Falha ao notificar coordenadores sobre atualização pelo superAdmin:', err.message);
-          })
-        );
-      }
-    }
-
-    await Promise.all(emailPromises);
 
     if (req.user?._id) {
       await registrarAuditoria({
