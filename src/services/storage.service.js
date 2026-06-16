@@ -9,7 +9,7 @@ function assertCloudinaryConfig() {
     .filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
-    throw new AppError(`Storage externo nao configurado. Defina: ${missing.join(', ')}.`, 500);
+    throw new AppError(`Storage externo não configurado. Defina: ${missing.join(', ')}.`, 500);
   }
 }
 
@@ -82,7 +82,36 @@ async function uploadArquivos(files = [], options = {}) {
   return Promise.all(files.map((file) => uploadBuffer(file, options)));
 }
 
+function signedDownloadUrls({ storageKey, nomeArquivo, resourceType = 'raw' }) {
+  configureCloudinary();
+
+  const extFromKey = path.extname(storageKey || '').replace('.', '').toLowerCase();
+  const extFromName = path.extname(nomeArquivo || '').replace('.', '').toLowerCase();
+  const format = extFromKey || extFromName || 'pdf';
+  const publicIdSemExt = storageKey && extFromKey
+    ? storageKey.slice(0, -(extFromKey.length + 1))
+    : storageKey;
+
+  return [
+    cloudinary.utils.private_download_url(storageKey, format, {
+      resource_type: resourceType || 'raw',
+      type: 'upload',
+      attachment: true,
+      expires_at: Math.floor(Date.now() / 1000) + 300
+    }),
+    publicIdSemExt && publicIdSemExt !== storageKey
+      ? cloudinary.utils.private_download_url(publicIdSemExt, format, {
+        resource_type: resourceType || 'raw',
+        type: 'upload',
+        attachment: true,
+        expires_at: Math.floor(Date.now() / 1000) + 300
+      })
+      : null
+  ].filter(Boolean);
+}
+
 module.exports = {
   uploadBuffer,
-  uploadArquivos
+  uploadArquivos,
+  signedDownloadUrls
 };
