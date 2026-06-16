@@ -2,8 +2,10 @@
 const Atividade = require('../models/Atividade');
 const Certificado = require('../models/Certificado');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
+const Curso = require('../models/Curso');
 const { registrarAuditoria } = require('../services/audit.service');
 const { uploadArquivos } = require('../services/storage.service');
+const { notificarResponsaveisNovaAtividade } = require('../services/notificacaoAtividade.service');
 
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
@@ -361,6 +363,16 @@ async function submeterAtividade(req, res) {
         resourceType: anexo.resourceType
       });
     }
+
+    const curso = await Curso.findById(cursoAlunoId).select('nome');
+
+    notificarResponsaveisNovaAtividade({
+      aluno: req.aluno,
+      curso,
+      atividade
+    }).catch((emailError) => {
+      console.error('[EMAIL] Falha ao notificar responsaveis sobre atividade submetida pelo aluno:', emailError.message);
+    });
 
     return res.status(201).json(atividade);
 
