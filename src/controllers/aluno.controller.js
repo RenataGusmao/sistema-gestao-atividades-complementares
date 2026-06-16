@@ -24,6 +24,10 @@ function cursosDoPayload(body = {}) {
     .filter(Boolean);
 }
 
+function cursoIdValor(curso) {
+  return curso?._id || curso?.id || curso;
+}
+
 function alunoPertenceAoCoordenador(aluno, idsPermitidos) {
   return (aluno?.cursos || []).some((item) => idsPermitidos.includes(String(item.cursoId)));
 }
@@ -234,22 +238,32 @@ async function dashboard(req, res) {
 async function listarMinhasAtividades(req, res) {
   try {
     const atividades = await Atividade.find(
-  { alunoId: req.aluno._id },
-  {
-    titulo: 1,
-    status: 1,
-    cargaHorariaInformada: 1,
-    justificativaReprovacao: 1,
-    dataCriacao: 1
-  }
-);
+      { alunoId: req.aluno._id },
+      {
+        titulo: 1,
+        status: 1,
+        cargaHorariaInformada: 1,
+        cargaHorariaValidada: 1,
+        justificativaReprovacao: 1,
+        dataCriacao: 1,
+        cursoId: 1,
+        categoriaId: 1
+      }
+    )
+      .populate('cursoId', 'nome codigo')
+      .populate('categoriaId', 'nome areaParametro');
 
     return res.status(200).json(atividades.map((atividade) => ({
       _id: atividade._id,
       titulo: atividade.titulo,
       status: atividade.status,
-      cargaHoraria: atividade.cargaHorariaInformada,
+      cargaHoraria: atividade.status === 'Aprovada'
+        ? atividade.cargaHorariaValidada
+        : atividade.cargaHorariaInformada,
       cargaHorariaInformada: atividade.cargaHorariaInformada,
+      cargaHorariaValidada: atividade.cargaHorariaValidada,
+      cursoId: atividade.cursoId,
+      categoriaId: atividade.categoriaId,
       justificativaReprovacao: atividade.justificativaReprovacao,
       dataCriacao: atividade.dataCriacao
     })));
@@ -265,11 +279,21 @@ async function listarMinhasAtividades(req, res) {
 
 async function listarCategoriasDisponiveis(req, res) {
   try {
-    const cursoAlunoId = req.query.cursoId || req.aluno.cursos?.[0]?.cursoId;
+    const cursoAlunoId = req.query.cursoId || cursoIdValor(req.aluno.cursos?.[0]?.cursoId);
+    const cursos = (req.aluno.cursos || [])
+      .map((item) => item.cursoId)
+      .filter(Boolean);
+    const cursoPermitido = cursos.some((curso) => String(cursoIdValor(curso)) === String(cursoAlunoId));
 
     if (!cursoAlunoId) {
       return res.status(422).json({
         message: 'Não foi possível identificar o curso do aluno.'
+      });
+    }
+
+    if (!cursoPermitido) {
+      return res.status(403).json({
+        message: 'O aluno não está vinculado ao curso informado.'
       });
     }
 
@@ -279,6 +303,12 @@ async function listarCategoriasDisponiveis(req, res) {
 
     return res.status(200).json({
       cursoId: cursoAlunoId,
+      cursos: cursos.map((curso) => ({
+        _id: cursoIdValor(curso),
+        id: cursoIdValor(curso),
+        nome: curso.nome || 'Curso',
+        codigo: curso.codigo || ''
+      })),
       categorias
     });
   } catch (error) {
@@ -314,7 +344,16 @@ async function submeterAtividade(req, res) {
       });
     }
 
-    const cursoAlunoId = cursoId || req.aluno.cursos?.[0]?.cursoId;
+    const cursoAlunoId = cursoId || cursoIdValor(req.aluno.cursos?.[0]?.cursoId);
+    const cursoPermitido = (req.aluno.cursos || [])
+      .some((item) => String(cursoIdValor(item.cursoId)) === String(cursoAlunoId));
+
+    if (!cursoPermitido) {
+      return res.status(403).json({
+        message: 'O aluno não está vinculado ao curso informado.'
+      });
+    }
+
     const categoria = categoriaId
       ? await CategoriaAtividade.findById(categoriaId)
       : await CategoriaAtividade.findOne({ curso: cursoAlunoId, ativa: true }).sort({ nome: 1 });
@@ -361,6 +400,12 @@ async function submeterAtividade(req, res) {
         storageProvider: anexo.storageProvider,
         storageKey: anexo.storageKey,
         resourceType: anexo.resourceType
+      });
+    }
+
+    if (String(categoria.curso) !== String(cursoAlunoId)) {
+      return res.status(422).json({
+        message: 'A categoria selecionada não pertence ao curso informado.'
       });
     }
 
