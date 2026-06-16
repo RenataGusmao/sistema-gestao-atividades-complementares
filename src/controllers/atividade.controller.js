@@ -5,7 +5,7 @@ const Usuario = require('../models/Usuario');
 const CategoriaAtividade = require('../models/CategoriaAtividade');
 const RegraCargaHoraria = require('../models/RegraCargaHoraria');
 const { registrarAuditoria } = require('../services/audit.service');
-const { uploadArquivos } = require('../services/storage.service');
+const { uploadArquivos, signedDownloadUrls } = require('../services/storage.service');
 const { enviarEmail } = require('../services/email.service');
 
 function coordenadorRestrito(req) {
@@ -56,6 +56,36 @@ function montarAnexosDoBody(anexos = []) {
 
 function validarTiposAnexos(anexos = []) {
   return anexos.some((anexo) => !anexo.tipoArquivo);
+}
+
+function nomeDownloadSeguro(nome = 'certificado.pdf') {
+  return String(nome || 'certificado.pdf')
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim() || 'certificado.pdf';
+}
+
+async function buscarRespostaDownloadCloudinary(anexo) {
+  const urls = signedDownloadUrls({
+    storageKey: anexo.storageKey,
+    nomeArquivo: anexo.nomeArquivo,
+    resourceType: anexo.resourceType || 'raw'
+  });
+
+  let ultimoStatus = null;
+
+  for (const url of urls) {
+    const resposta = await fetch(url);
+    ultimoStatus = resposta.status;
+
+    if (resposta.ok) {
+      return resposta;
+    }
+  }
+
+  const erro = new Error('Cloudinary nao entregou o arquivo.');
+  erro.statusCode = ultimoStatus || 502;
+  throw erro;
 }
 
 async function validarReferencias({ alunoId, cursoId, categoriaId }) {
@@ -257,6 +287,48 @@ async function buscarPorId(req, res) {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao buscar atividade.' });
+  }
+}
+
+async function baixarAnexo(req, res) {
+  try {
+    const atividade = await Atividade.findById(req.params.id);
+
+    if (!atividade) {
+      return res.status(404).json({ message: 'Atividade nao encontrada.' });
+    }
+
+    if (!cursoPermitidoParaCoordenador(req, atividade.cursoId)) {
+      return res.status(403).json({ message: 'Acesso negado ao anexo informado.' });
+    }
+
+    const index = Number(req.params.index || 0);
+    const anexo = atividade.anexos?.[index];
+
+    if (!Number.isInteger(index) || index < 0 || !anexo) {
+      return res.status(404).json({ message: 'Anexo nao encontrado.' });
+    }
+
+    if (anexo.storageProvider !== 'cloudinary' || !anexo.storageKey) {
+      return res.status(422).json({ message: 'Anexo sem chave valida no storage.' });
+    }
+
+    const respostaCloudinary = await buscarRespostaDownloadCloudinary(anexo);
+    const buffer = Buffer.from(await respostaCloudinary.arrayBuffer());
+    const nomeArquivo = nomeDownloadSeguro(anexo.nomeArquivo);
+
+    res.setHeader('Content-Type', anexo.tipoArquivo || respostaCloudinary.headers.get('content-type') || 'application/octet-stream');
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
+    res.setHeader('Cache-Control', 'private, max-age=60');
+
+    return res.status(200).send(buffer);
+  } catch (error) {
+    console.error('[DOWNLOAD_ANEXO] Falha ao baixar anexo:', error.message);
+    return res.status(502).json({
+      message: 'Nao foi possivel baixar o anexo pelo storage externo.',
+      detalhe: 'Verifique se a entrega de PDF/ZIP esta habilitada no Cloudinary ou reenvie o arquivo.'
+    });
   }
 }
 
@@ -561,6 +633,7 @@ module.exports = {
   criar,
   listar,
   buscarPorId,
+  baixarAnexo,
   atualizar,
   remover,
   atualizarStatus
