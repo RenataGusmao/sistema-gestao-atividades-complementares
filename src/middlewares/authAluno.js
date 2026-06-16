@@ -21,7 +21,7 @@ async function authAluno(req, res, next) {
       });
     }
 
-    const aluno = await Aluno.findById(decoded.sub);
+    const aluno = await Aluno.findById(decoded.sub).populate('cursos.cursoId');
 
     if (!aluno || !aluno.ativo) {
       return res.status(401).json({
