@@ -536,16 +536,14 @@ async function atualizarStatus(req, res) {
 
     const aluno = await Aluno.findById(atividade.alunoId);
 
-    try {
-      await notificarAlunoStatusAtividade({
-        aluno,
-        atividade,
-        status,
-        justificativaReprovacao
-      });
-    } catch (emailError) {
+    notificarAlunoStatusAtividade({
+      aluno,
+      atividade,
+      status,
+      justificativaReprovacao
+    }).catch((emailError) => {
       console.error('[EMAIL] Falha ao notificar aluno sobre atualizacao de status:', emailError.message);
-    }
+    });
 
     if (req.user?._id) {
       await registrarAuditoria({
