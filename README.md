@@ -1,547 +1,490 @@
-# KORE — Backend API
+# KORE - Backend API
 
-Sistema de Gestão de Atividades Complementares desenvolvido em Node.js, Express e MongoDB.
+Backend do Sistema de Gestao de Atividades Complementares KORE.
 
-O projeto foi construído com foco em:
+Esta API foi desenvolvida em Node.js, Express e MongoDB para centralizar o cadastro de cursos, alunos, coordenadores, categorias, regras de carga horaria, submissao de atividades complementares, validacao de certificados, auditoria e notificacoes por e-mail.
 
-* organização acadêmica;
-* validação de atividades complementares;
-* rastreabilidade;
-* auditoria;
-* autenticação segura;
-* integração entre frontend e backend.
+## Objetivo
 
----
+O KORE ajuda uma instituicao de ensino a controlar atividades complementares submetidas por alunos. O aluno envia uma atividade com certificado, o coordenador analisa, aprova ou reprova, e o sistema registra todo o historico da decisao.
 
-# 📌 Objetivo do Projeto
+O backend atende tres perfis principais:
 
-O KORE foi desenvolvido para auxiliar instituições de ensino no gerenciamento de atividades complementares realizadas pelos alunos.
+- Administrador: gerencia usuarios, cursos, categorias, regras, alunos, auditoria e configuracoes.
+- Coordenador: acompanha alunos e atividades dos cursos que coordena.
+- Aluno: acessa o app/mobile, consulta cursos vinculados, envia atividades e acompanha o status.
 
-O sistema permite:
+## Principais Recursos
 
-* cadastro e gerenciamento de usuários;
-* gerenciamento de cursos;
-* gerenciamento de alunos;
-* gerenciamento de categorias;
-* envio de atividades complementares;
-* upload de certificados;
-* validação de atividades;
-* auditoria de ações realizadas no sistema;
-* controle de status das atividades.
+- Autenticacao JWT para usuarios administrativos e coordenadores.
+- Autenticacao JWT separada para alunos.
+- Suporte a aluno com o mesmo e-mail em mais de uma matricula/curso.
+- Suporte a coordenador com o mesmo e-mail coordenando mais de um curso.
+- Controle de permissao por perfil.
+- Filtro de dados por curso para coordenadores.
+- Upload de certificados por Cloudinary.
+- Download protegido de anexos de atividades.
+- Notificacao por e-mail usando Brevo API.
+- Auditoria de acoes relevantes no sistema.
+- Logs HTTP com Morgan.
+- Protecoes com Helmet, CORS, rate limit e sanitizacao contra NoSQL injection.
 
----
+## Tecnologias
 
-# 🏗️ Arquitetura do Projeto
+- Node.js
+- Express
+- MongoDB Atlas
+- Mongoose
+- JWT
+- Multer
+- Cloudinary
+- Brevo API
+- Morgan
+- Helmet
+- express-rate-limit
+- express-mongo-sanitize
+- CORS
 
-O backend segue uma arquitetura baseada em separação de responsabilidades.
-
-## Estrutura principal
+## Estrutura do Projeto
 
 ```bash
 src/
- ├── config/
- ├── controllers/
- ├── middlewares/
- ├── models/
- ├── routes/
- ├── services/
- ├── utils/
- ├── uploads/
- ├── app.js
- └── server.js
+  config/          # conexao com banco e configuracoes
+  controllers/     # regras de entrada/saida das rotas
+  middlewares/     # autenticacao, permissao, upload e erros
+  models/          # schemas do MongoDB/Mongoose
+  routes/          # definicao dos endpoints
+  seeds/           # scripts auxiliares de carga/correcao
+  services/        # Cloudinary, e-mail, auditoria e servicos externos
+  utils/           # utilitarios compartilhados
+  app.js           # configuracao do Express
+  server.js        # conexao com banco e inicializacao do servidor
 ```
 
----
+## Como Rodar Localmente
 
-# 📂 Explicação das Pastas
-
-## 📁 config/
-
-Responsável pelas configurações do sistema.
-
-Exemplo:
-
-* conexão com MongoDB;
-* variáveis de ambiente;
-* configurações globais.
-
----
-
-## 📁 controllers/
-
-Contém as regras de negócio da aplicação.
-
-Os controllers:
-
-* recebem a requisição;
-* processam os dados;
-* validam informações;
-* chamam models;
-* retornam respostas.
-
-Exemplo:
-
-```js
-async function criarCurso(req, res) {
-```
-
----
-
-## 📁 middlewares/
-
-Executam regras entre a requisição e a resposta.
-
-Exemplos:
-
-* autenticação JWT;
-* validação de permissões;
-* tratamento de erros;
-* upload de arquivos;
-* sanitização.
-
----
-
-## 📁 models/
-
-Representam as coleções do MongoDB.
-
-Os models definem:
-
-* estrutura dos dados;
-* tipos;
-* validações;
-* relacionamentos.
-
-Exemplo:
-
-```js
-const CursoSchema = new mongoose.Schema({
-```
-
----
-
-## 📁 routes/
-
-Definem os endpoints da API.
-
-Exemplo:
-
-```js
-router.post('/login', login)
-```
-
-As rotas apenas direcionam as requisições.
-
----
-
-## 📁 uploads/
-
-Pasta responsável por armazenar arquivos enviados.
-
-Exemplos:
-
-* certificados PDF;
-* imagens;
-* documentos.
-
----
-
-# ⚙️ app.js e server.js
-
-## 📌 app.js
-
-Responsável pela configuração principal da aplicação.
-
-Nele ficam:
-
-* middlewares;
-* rotas;
-* CORS;
-* Helmet;
-* logs;
-* tratamento de erros.
-
-O app.js NÃO inicia o servidor.
-
----
-
-## 📌 server.js
-
-Responsável por:
-
-* carregar variáveis de ambiente;
-* conectar ao banco;
-* iniciar o servidor.
-
-Exemplo:
-
-```js
-app.listen(PORT)
-```
-
----
-
-# 🛠️ Tecnologias Utilizadas
-
-## Backend
-
-* Node.js
-* Express
-* MongoDB Atlas
-* Mongoose
-
-## Segurança
-
-* JWT
-* Helmet
-* express-mongo-sanitize
-* Rate Limit
-* CORS
-
-## Uploads
-
-* Multer
-
-## Utilitários
-
-* dotenv
-* morgan
-* nodemon
-
----
-
-# 🔐 Autenticação
-
-O sistema utiliza autenticação JWT.
-
-## Fluxo
-
-1. Usuário realiza login;
-2. Backend valida credenciais;
-3. Backend gera token JWT;
-4. Frontend armazena token;
-5. Token é enviado nas rotas protegidas.
-
----
-
-## Exemplo de Header
-
-```http
-Authorization: Bearer TOKEN
-```
-
----
-
-# 👥 Perfis do Sistema
-
-## Administrador
-
-Responsável por:
-
-* gerenciar usuários;
-* gerenciar cursos;
-* gerenciar categorias;
-* visualizar auditoria.
-
----
-
-## Coordenador
-
-Responsável por:
-
-* validar atividades;
-* aprovar atividades;
-* reprovar atividades;
-* acompanhar alunos.
-
----
-
-## Aluno
-
-Responsável por:
-
-* enviar atividades;
-* anexar certificados;
-* acompanhar status.
-
----
-
-# 📚 Regras de Negócio
-
-## 📌 Atividades Complementares
-
-Cada atividade deve possuir:
-
-* título;
-* descrição;
-* categoria;
-* carga horária;
-* data;
-* arquivo.
-
----
-
-## 📌 Status possíveis
-
-* Enviada
-* Aprovada
-* Reprovada
-
----
-
-## 📌 Uploads
-
-O sistema valida:
-
-* tipo do arquivo;
-* tamanho máximo;
-* extensões permitidas.
-
-Formatos aceitos:
-
-* PDF
-* JPG
-* JPEG
-* PNG
-
----
-
-## 📌 Auditoria
-
-O sistema registra ações importantes.
-
-Exemplos:
-
-* criação;
-* edição;
-* exclusão;
-* aprovação;
-* reprovação.
-
-Objetivo:
-
-* rastreabilidade;
-* segurança;
-* histórico.
-
----
-
-# 🗄️ Banco de Dados
-
-O projeto utiliza MongoDB Atlas.
-
-A modelagem foi adaptada de um modelo relacional para MongoDB.
-
----
-
-# 📌 Principais Coleções
-
-## Usuários
-
-Armazena:
-
-* nome;
-* email;
-* senha criptografada;
-* perfil.
-
----
-
-## Cursos
-
-Armazena:
-
-* nome;
-* código;
-* carga horária.
-
----
-
-## Alunos
-
-Armazena:
-
-* matrícula;
-* vínculo com curso;
-* dados pessoais.
-
----
-
-## Categorias
-
-Armazena:
-
-* nome da categoria;
-* limite de horas.
-
----
-
-## Atividades
-
-Armazena:
-
-* atividade enviada;
-* certificado;
-* status;
-* histórico.
-
----
-
-# 📡 Rotas Principais
-
-## 🔐 Auth
-
-| Método | Rota            |
-| ------ | --------------- |
-| POST   | /api/auth/login |
-
----
-
-## 📚 Cursos
-
-| Método | Rota            |
-| ------ | --------------- |
-| GET    | /api/cursos     |
-| POST   | /api/cursos     |
-| PUT    | /api/cursos/:id |
-| DELETE | /api/cursos/:id |
-
----
-
-## 👨‍🎓 Alunos
-
-| Método | Rota            |
-| ------ | --------------- |
-| GET    | /api/alunos     |
-| POST   | /api/alunos     |
-| PUT    | /api/alunos/:id |
-| DELETE | /api/alunos/:id |
-
----
-
-## 📝 Atividades
-
-| Método | Rota                       |
-| ------ | -------------------------- |
-| POST   | /api/atividades            |
-| GET    | /api/atividades            |
-| PUT    | /api/atividades/:id/status |
-
----
-
-# 📂 Upload de Arquivos
-
-O upload é realizado utilizando Multer.
-
-## Funcionamento
-
-1. Usuário envia arquivo;
-2. Backend valida tipo;
-3. Backend valida tamanho;
-4. Arquivo é salvo em `/uploads`;
-5. Dados são registrados no banco.
-
----
-
-# 🧪 Testes da API
-
-Os testes podem ser realizados utilizando:
-
-* Insomnia;
-* Postman.
-
----
-
-# ▶️ Como Executar o Projeto
-
-## 1. Clonar repositório
-
-```bash
-git clone URL_DO_REPOSITORIO
-```
-
----
-
-## 2. Instalar dependências
+Instale as dependencias:
 
 ```bash
 npm install
 ```
 
----
-
-## 3. Criar arquivo .env
+Crie um arquivo `.env` na raiz do backend:
 
 ```env
 PORT=3000
-MONGO_URI=URL_MONGODB
-JWT_SECRET=SUA_CHAVE
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://usuario:senha@cluster/database
+JWT_SECRET=sua_chave_jwt
+JWT_EXPIRES_IN=1d
+CORS_ORIGIN=http://127.0.0.1:5501,http://localhost:5501
+
+CLOUDINARY_CLOUD_NAME=seu_cloud_name
+CLOUDINARY_API_KEY=sua_api_key
+CLOUDINARY_API_SECRET=seu_api_secret
+CLOUDINARY_FOLDER=kore/certificados
+
+BREVO_API_KEY=sua_chave_api_brevo
+MAIL_FROM_EMAIL=no-reply@seudominio.com
+MAIL_FROM_NAME=Kore - Atividade Complementar
+
+ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png
+MAX_FILE_SIZE_BYTES=10485760
+BCRYPT_SALT_ROUNDS=12
 ```
 
----
-
-## 4. Executar projeto
+Execute em desenvolvimento:
 
 ```bash
 npm run dev
 ```
 
----
+Execute em producao:
 
-# 🌐 Deploy
+```bash
+npm start
+```
 
-O backend foi preparado para deploy em serviços como:
+Endpoint de saude:
 
-* Render;
-* Railway;
-* Vercel Serverless;
-* Cyclic.
+```http
+GET /health
+```
 
----
+## Scripts Disponiveis
 
-# 🔒 Segurança Implementada
+```bash
+npm run dev     # inicia com nodemon
+npm start       # inicia com node
+npm run seed    # executa seed inicial
+```
 
-## Helmet
+## Autenticacao
 
-Protege headers HTTP.
+O backend usa JWT no header:
 
----
+```http
+Authorization: Bearer TOKEN
+```
 
-## Rate Limit
+Existem dois fluxos de autenticacao.
 
-Evita excesso de requisições.
+### Usuarios administrativos e coordenadores
 
----
+Usado pelo painel web.
 
-## Mongo Sanitize
+```http
+POST /api/auth/login
+GET /api/auth/me
+POST /api/auth/register
+```
 
-Evita ataques NoSQL Injection.
+O login aceita e-mail, codigo de usuario ou matricula/codigo, conforme o payload enviado pelo frontend.
 
----
+Quando um coordenador possui mais de um registro com o mesmo e-mail, o backend agrega os cursos coordenados desses registros ativos. Assim, o coordenador enxerga todos os cursos vinculados ao mesmo perfil operacional.
 
-## JWT
+### Alunos
 
-Protege rotas privadas.
+Usado pelo aplicativo/mobile.
 
----
+```http
+POST /api/alunos/auth/login
+POST /api/alunos/auth/primeiro-acesso
+```
 
-# 📈 Melhorias Futuras
+Quando um aluno possui mais de uma matricula com o mesmo e-mail, o backend agrega os cursos dos registros ativos daquele e-mail. Assim, o aluno pode escolher no app qual curso deseja usar para submissao e acompanhamento do progresso.
 
-* envio automático de e-mails;
-* dashboard analítico;
-* notificações em tempo real;
-* logs avançados;
-* recuperação de senha;
-* integração com sistema acadêmico.
+## Permissoes
 
----
+### Administrador
 
-# 👨‍💻 Equipe
+- Gerencia usuarios e coordenadores.
+- Gerencia cursos.
+- Gerencia categorias.
+- Gerencia regras de carga horaria.
+- Consulta auditoria.
+- Acompanha atividades e alunos.
 
-Projeto desenvolvido para a disciplina de Projeto Integrador.
+### Coordenador
 
----
+- Consulta cursos que coordena.
+- Consulta alunos dos cursos coordenados.
+- Consulta atividades dos cursos coordenados.
+- Aprova, reprova ou coloca atividades em analise.
+- Baixa anexos das atividades.
 
-# 📄 Licença
+### Aluno
 
-Este projeto possui finalidade acadêmica.
+- Consulta seus cursos.
+- Consulta categorias disponiveis por curso.
+- Submete atividade complementar.
+- Envia certificado/anexo.
+- Consulta atividades e certificados.
+- Acompanha status.
+
+## Regras de Negocio
+
+### Atividades
+
+Uma atividade possui:
+
+- aluno;
+- curso;
+- categoria;
+- titulo;
+- descricao;
+- data de realizacao;
+- carga horaria informada;
+- anexos;
+- status;
+- historico de validacoes.
+
+Status possiveis:
+
+- Enviada
+- Em analise
+- Aprovada
+- Reprovada
+
+### Validacao pelo Coordenador
+
+O coordenador pode atualizar o status da atividade pela rota:
+
+```http
+PATCH /api/atividades/:id/status
+```
+
+Ao aprovar, o sistema considera a carga horaria validada. Quando existe regra de carga horaria para curso/categoria, o backend limita a carga aceita ao teto configurado.
+
+Ao reprovar, a justificativa de reprovacao e obrigatoria.
+
+### Cursos e Multiplas Matriculas
+
+O sistema permite que um mesmo e-mail exista em mais de uma matricula, desde que a matricula seja diferente.
+
+Isso foi tratado para:
+
+- aluno com mais de um curso;
+- coordenador com mais de um curso.
+
+Na pratica, o banco pode ter registros separados, mas a API monta uma visao agregada para o usuario autenticado.
+
+## Upload e Cloudinary
+
+O envio de certificados usa Multer para receber arquivos e Cloudinary como storage externo.
+
+Formatos aceitos:
+
+- PDF
+- JPG/JPEG
+- PNG
+
+O tamanho maximo e controlado por:
+
+```env
+MAX_FILE_SIZE_BYTES=10485760
+```
+
+Tipos permitidos:
+
+```env
+ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png
+```
+
+O anexo salvo em atividade guarda metadados como:
+
+- nome do arquivo;
+- URL;
+- tipo MIME;
+- tamanho;
+- storageProvider;
+- storageKey;
+- resourceType.
+
+Download protegido:
+
+```http
+GET /api/atividades/:id/anexos/:index/download
+```
+
+Essa rota gera o acesso ao arquivo salvo no Cloudinary e so permite download para administradores/coordenadores autorizados.
+
+## Notificacoes por E-mail
+
+O backend envia e-mails usando a API transacional da Brevo.
+
+Variaveis usadas:
+
+```env
+BREVO_API_KEY=
+MAIL_FROM_EMAIL=
+MAIL_FROM_NAME=
+```
+
+Notificacoes implementadas:
+
+- quando o aluno submete uma nova atividade, responsaveis pelo curso podem ser notificados;
+- quando uma atividade e aprovada ou reprovada, o aluno recebe e-mail com a atualizacao de status.
+
+O envio de e-mail roda de forma assincrona e nao bloqueia a resposta principal da API. Se o e-mail falhar, a acao principal continua salva e o erro e registrado no log.
+
+## Auditoria e Logs
+
+O backend possui duas camadas de rastreabilidade.
+
+### Logs HTTP
+
+O `morgan` registra as requisicoes HTTP.
+
+Em producao:
+
+```js
+morgan('combined')
+```
+
+Em desenvolvimento:
+
+```js
+morgan('dev')
+```
+
+### Auditoria de Negocio
+
+A auditoria registra acoes importantes em colecao propria no MongoDB.
+
+Exemplos:
+
+- criacao;
+- atualizacao;
+- exclusao;
+- login;
+- aprovacao;
+- reprovacao;
+- alteracao de status.
+
+Consulta:
+
+```http
+GET /api/auditoria
+```
+
+Essa rota e protegida para administrador.
+
+## Seguranca
+
+Medidas implementadas:
+
+- JWT para rotas protegidas.
+- Helmet para cabecalhos HTTP.
+- CORS configuravel por ambiente.
+- Rate limit geral em `/api`.
+- Rate limit especifico em `/api/auth`.
+- Sanitizacao contra NoSQL injection.
+- Validacao de upload por extensao, MIME type e tamanho.
+- Restricao de curso para coordenadores.
+
+## Rotas Principais
+
+### Health
+
+| Metodo | Rota      | Descricao |
+| ------ | --------- | --------- |
+| GET    | /health   | Verifica se a API esta ativa |
+
+### Auth
+
+| Metodo | Rota               | Perfil |
+| ------ | ------------------ | ------ |
+| POST   | /api/auth/login    | Publica |
+| GET    | /api/auth/me       | Autenticado |
+| POST   | /api/auth/register | Admin/uso controlado |
+
+### Auth de Aluno
+
+| Metodo | Rota                            | Perfil |
+| ------ | ------------------------------- | ------ |
+| POST   | /api/alunos/auth/login          | Publica |
+| POST   | /api/alunos/auth/primeiro-acesso| Publica |
+
+### Usuarios
+
+| Metodo | Rota              | Perfil |
+| ------ | ----------------- | ------ |
+| GET    | /api/usuarios     | Administrador |
+| POST   | /api/usuarios     | Administrador |
+| GET    | /api/usuarios/:id | Administrador |
+| PATCH  | /api/usuarios/:id | Administrador |
+| DELETE | /api/usuarios/:id | Administrador |
+
+### Cursos
+
+| Metodo | Rota            | Perfil |
+| ------ | --------------- | ------ |
+| GET    | /api/cursos     | Autenticado |
+| POST   | /api/cursos     | Admin/Coordenador |
+| PATCH  | /api/cursos/:id | Administrador |
+| PUT    | /api/cursos/:id | Admin/Coordenador |
+| DELETE | /api/cursos/:id | Administrador |
+
+### Alunos
+
+| Metodo | Rota                      | Perfil |
+| ------ | ------------------------- | ------ |
+| GET    | /api/alunos               | Admin/Coordenador |
+| POST   | /api/alunos               | Admin/Coordenador |
+| GET    | /api/alunos/:id           | Admin/Coordenador |
+| PATCH  | /api/alunos/:id           | Admin/Coordenador |
+| DELETE | /api/alunos/:id           | Admin/Coordenador |
+| GET    | /api/alunos/dashboard     | Aluno |
+| GET    | /api/alunos/meus-cursos   | Aluno |
+| GET    | /api/alunos/atividades    | Aluno |
+| POST   | /api/alunos/atividades    | Aluno |
+| GET    | /api/alunos/categorias    | Aluno |
+| GET    | /api/alunos/certificados  | Aluno |
+
+### Atividades
+
+| Metodo | Rota                                      | Perfil |
+| ------ | ----------------------------------------- | ------ |
+| GET    | /api/atividades                           | Admin/Coordenador |
+| POST   | /api/atividades                           | Admin/Coordenador |
+| GET    | /api/atividades/:id                       | Admin/Coordenador |
+| PUT    | /api/atividades/:id                       | Admin/Coordenador |
+| DELETE | /api/atividades/:id                       | Admin/Coordenador |
+| PATCH  | /api/atividades/:id/status                | Admin/Coordenador |
+| GET    | /api/atividades/:id/anexos/:index/download| Admin/Coordenador |
+
+### Categorias
+
+| Metodo | Rota                    | Perfil |
+| ------ | ----------------------- | ------ |
+| GET    | /api/categorias         | Admin/Coordenador |
+| POST   | /api/categorias         | Administrador |
+| GET    | /api/categorias/:id     | Admin/Coordenador |
+| PUT    | /api/categorias/:id     | Administrador |
+| DELETE | /api/categorias/:id     | Administrador |
+| POST   | /api/categorias/seed-ads| Administrador |
+
+### Regras de Carga Horaria
+
+| Metodo | Rota                         | Perfil |
+| ------ | ---------------------------- | ------ |
+| GET    | /api/regras-carga-horaria    | Admin/Coordenador |
+| POST   | /api/regras-carga-horaria    | Administrador |
+| GET    | /api/regras-carga-horaria/:id| Admin/Coordenador |
+| PUT    | /api/regras-carga-horaria/:id| Administrador |
+| DELETE | /api/regras-carga-horaria/:id| Administrador |
+
+### Configuracoes
+
+| Metodo | Rota                    | Perfil |
+| ------ | ----------------------- | ------ |
+| GET    | /api/configuracoes      | Admin/Coordenador |
+| GET    | /api/configuracoes/:chave| Admin/Coordenador |
+| POST   | /api/configuracoes      | Administrador |
+
+### Auditoria
+
+| Metodo | Rota           | Perfil |
+| ------ | -------------- | ------ |
+| GET    | /api/auditoria | Administrador |
+
+## Deploy no Render
+
+Configuracao recomendada:
+
+- Build command: `npm install`
+- Start command: `npm start`
+- Node environment: production
+
+Variaveis obrigatorias no Render:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `CORS_ORIGIN`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `BREVO_API_KEY`
+- `MAIL_FROM_EMAIL`
+- `MAIL_FROM_NAME`
+
+## Observacoes de Go Live
+
+Antes de publicar:
+
+- confirmar variaveis de ambiente;
+- confirmar permissao de entrega de PDF/raw no Cloudinary;
+- confirmar remetente validado na Brevo;
+- testar login de administrador/coordenador;
+- testar login de aluno;
+- testar aluno com dois cursos;
+- testar coordenador com dois cursos;
+- testar submissao de atividade;
+- testar aprovacao/reprovacao;
+- testar recebimento de e-mail;
+- testar download de PDF.
+
+## Finalidade
+
+Projeto academico desenvolvido para a disciplina de Projeto Integrador.
