@@ -222,7 +222,12 @@ async function dashboard(req, res) {
         email: aluno.email,
         matricula: aluno.matricula,
         matriculaAtiva: aluno.matriculaAtiva,
-        ultimoLogin: aluno.ultimoLogin
+        ultimoLogin: aluno.ultimoLogin,
+        cursos: (aluno.cursos || []).map((item) => ({
+          _id: cursoIdValor(item.cursoId),
+          nome: item.cursoId?.nome,
+          codigo: item.cursoId?.codigo
+        }))
       }
     });
 
@@ -237,8 +242,29 @@ async function dashboard(req, res) {
 
 async function listarMinhasAtividades(req, res) {
   try {
+
+    const filtro = {
+      alunoId: req.aluno._id
+    };
+
+    if (req.query.cursoId) {
+
+      const cursoPermitido = (req.aluno.cursos || [])
+        .some((item) =>
+          String(cursoIdValor(item.cursoId)) === String(req.query.cursoId)
+        );
+
+      if (!cursoPermitido) {
+        return res.status(403).json({
+          message: 'O aluno não está vinculado ao curso informado.'
+        });
+      }
+
+      filtro.cursoId = req.query.cursoId;
+    }
+
     const atividades = await Atividade.find(
-      { alunoId: req.aluno._id },
+      filtro,
       {
         titulo: 1,
         status: 1,
@@ -253,20 +279,23 @@ async function listarMinhasAtividades(req, res) {
       .populate('cursoId', 'nome codigo')
       .populate('categoriaId', 'nome areaParametro');
 
-    return res.status(200).json(atividades.map((atividade) => ({
-      _id: atividade._id,
-      titulo: atividade.titulo,
-      status: atividade.status,
-      cargaHoraria: atividade.status === 'Aprovada'
-        ? atividade.cargaHorariaValidada
-        : atividade.cargaHorariaInformada,
-      cargaHorariaInformada: atividade.cargaHorariaInformada,
-      cargaHorariaValidada: atividade.cargaHorariaValidada,
-      cursoId: atividade.cursoId,
-      categoriaId: atividade.categoriaId,
-      justificativaReprovacao: atividade.justificativaReprovacao,
-      dataCriacao: atividade.dataCriacao
-    })));
+    return res.status(200).json(
+      atividades.map((atividade) => ({
+        _id: atividade._id,
+        titulo: atividade.titulo,
+        status: atividade.status,
+        cargaHoraria:
+          atividade.status === 'Aprovada'
+            ? atividade.cargaHorariaValidada
+            : atividade.cargaHorariaInformada,
+        cargaHorariaInformada: atividade.cargaHorariaInformada,
+        cargaHorariaValidada: atividade.cargaHorariaValidada,
+        cursoId: atividade.cursoId,
+        categoriaId: atividade.categoriaId,
+        justificativaReprovacao: atividade.justificativaReprovacao,
+        dataCriacao: atividade.dataCriacao
+      }))
+    );
 
   } catch (error) {
     console.error(error);
@@ -452,6 +481,24 @@ async function listarCertificados(req, res) {
   }
 }
 
+async function listarMeusCursos(req, res) {
+  try {
+    const cursos = (req.aluno.cursos || []).map((item) => ({
+      _id: item.cursoId._id || item.cursoId,
+      nome: item.cursoId.nome,
+      codigo: item.cursoId.codigo
+    }));
+
+    return res.status(200).json(cursos);
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: 'Erro ao listar cursos.'
+    });
+  }
+}
+
 module.exports = {
   criar,
   listar,
@@ -462,7 +509,8 @@ module.exports = {
   listarCertificados,
   submeterAtividade,
   atualizar,
-  remover
+  remover,
+  listarMeusCursos
 };
 
 
