@@ -1,6 +1,5 @@
-﻿const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const Aluno = require('../models/Aluno');
-const { registrarAuditoria } = require('../services/audit.service');
 
 function gerarToken(aluno) {
   return jwt.sign(
@@ -34,20 +33,12 @@ function montarFiltroAluno({ matricula, email }) {
 async function login(req, res) {
   try {
     const { matricula, email, senha } = req.body;
-
     const { filtro } = montarFiltroAluno({ matricula, email });
 
-    const aluno = await Aluno.findOne(filtro).select('+senhaHash');
+    const alunos = await Aluno.find(filtro).select('+senhaHash');
+    const aluno = alunos.find((item) => item.ativo && senha === item.senhaHash);
 
-    if (!aluno || !aluno.ativo) {
-      return res.status(401).json({
-        message: 'Credenciais inválidas.'
-      });
-    }
-
-    const senhaValida = senha === aluno.senhaHash;
-
-    if (!senhaValida) {
+    if (!aluno) {
       return res.status(401).json({
         message: 'Credenciais inválidas.'
       });
@@ -74,7 +65,6 @@ async function login(req, res) {
         perfil: 'aluno'
       }
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -89,7 +79,6 @@ async function primeiroAcesso(req, res) {
     const senhaPrimeiroAcesso = senha || novaSenha;
 
     const { filtro, emailLimpo } = montarFiltroAluno({ matricula, email });
-
     const aluno = await Aluno.findOne(filtro).select('+senhaHash');
 
     if (!aluno) {
@@ -111,13 +100,11 @@ async function primeiroAcesso(req, res) {
     }
 
     aluno.senhaHash = senhaPrimeiroAcesso;
-
     await aluno.save();
 
     return res.status(200).json({
       message: 'Primeiro acesso realizado com sucesso.'
     });
-
   } catch (error) {
     console.error(error);
 
