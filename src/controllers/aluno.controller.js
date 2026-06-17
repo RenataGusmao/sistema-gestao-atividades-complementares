@@ -14,7 +14,7 @@ function coordenadorRestrito(req) {
 
 function cursosCoordenadosIds(req) {
   return (req.user?.cursosCoordenados || [])
-    .map((item) => String(item.cursoId))
+    .map((item) => String(cursoIdValor(item.cursoId)))
     .filter(Boolean);
 }
 
@@ -29,7 +29,7 @@ function cursoIdValor(curso) {
 }
 
 function alunoPertenceAoCoordenador(aluno, idsPermitidos) {
-  return (aluno?.cursos || []).some((item) => idsPermitidos.includes(String(item.cursoId)));
+  return (aluno?.cursos || []).some((item) => idsPermitidos.includes(String(cursoIdValor(item.cursoId))));
 }
 
 function payloadCursosPermitidos(req) {

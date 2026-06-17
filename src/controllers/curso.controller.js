@@ -1,6 +1,10 @@
 const Curso = require('../models/Curso');
 const { registrarAuditoria } = require('../services/audit.service');
 
+function cursoIdValor(curso) {
+  return curso?._id || curso?.id || curso;
+}
+
 function coordenadorRestrito(req) {
   const perfis = req.user?.perfis || [];
   return perfis.includes('coordenador') && !perfis.includes('administrador');
@@ -8,7 +12,7 @@ function coordenadorRestrito(req) {
 
 function cursosCoordenadosIds(req) {
   return (req.user?.cursosCoordenados || [])
-    .map((item) => item.cursoId)
+    .map((item) => cursoIdValor(item.cursoId))
     .filter(Boolean);
 }
 

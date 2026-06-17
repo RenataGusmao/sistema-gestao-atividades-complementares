@@ -15,15 +15,19 @@ function coordenadorRestrito(req) {
   return perfis.includes('coordenador') && !perfis.includes('administrador');
 }
 
+function cursoIdValor(curso) {
+  return curso?._id || curso?.id || curso;
+}
+
 function cursosCoordenadosIds(req) {
   return (req.user?.cursosCoordenados || [])
-    .map((item) => String(item.cursoId))
+    .map((item) => String(cursoIdValor(item.cursoId)))
     .filter(Boolean);
 }
 
 function cursoPermitidoParaCoordenador(req, cursoId) {
   if (!coordenadorRestrito(req)) return true;
-  return cursosCoordenadosIds(req).includes(String(cursoId));
+  return cursosCoordenadosIds(req).includes(String(cursoIdValor(cursoId)));
 }
 
 function normalizarMimeType(mimeType) {
@@ -102,7 +106,7 @@ async function validarReferencias({ alunoId, cursoId, categoriaId }) {
   if (!categoria) return { ok: false, status: 404, message: 'Categoria não encontrada.' };
 
   const alunoVinculadoAoCurso = Array.isArray(aluno.cursos)
-    && aluno.cursos.some((item) => String(item.cursoId) === String(cursoId));
+    && aluno.cursos.some((item) => String(cursoIdValor(item.cursoId)) === String(cursoId));
 
   if (!alunoVinculadoAoCurso) {
     return { ok: false, status: 422, message: 'O aluno não está vinculado ao curso informado.' };
