@@ -1,4 +1,4 @@
-﻿const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 const { registrarAuditoria } = require('../services/audit.service');
 
@@ -8,6 +8,38 @@ function gerarToken(usuario) {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
   );
+}
+
+function cursoIdValor(curso) {
+  return curso?._id || curso?.id || curso;
+}
+
+function agregarPerfis(usuarios) {
+  return [...new Set(
+    usuarios.flatMap((usuario) => usuario.perfis || [])
+  )];
+}
+
+function agregarCursosCoordenados(usuarios) {
+  const cursosPorId = new Map();
+
+  usuarios.forEach((usuario) => {
+    (usuario.cursosCoordenados || []).forEach((item) => {
+      const cursoId = cursoIdValor(item.cursoId);
+
+      if (cursoId && !cursosPorId.has(String(cursoId))) {
+        cursosPorId.set(String(cursoId), item);
+      }
+    });
+  });
+
+  return Array.from(cursosPorId.values());
+}
+
+function aplicarAgregacaoPorEmail(usuario, usuariosMesmoEmail) {
+  usuario.perfis = agregarPerfis(usuariosMesmoEmail);
+  usuario.cursosCoordenados = agregarCursosCoordenados(usuariosMesmoEmail);
+  return usuario;
 }
 
 function usuarioPublico(usuario) {
@@ -98,24 +130,35 @@ async function login(req, res) {
     const login = codigoUsuario || matricula || email;
     const loginTexto = String(login || '').trim();
     const usaCodigo = Boolean(codigoUsuario || matricula) || !loginTexto.includes('@');
+    const filtroLogin = usaCodigo
+      ? { codigoUsuario: loginTexto.toUpperCase() }
+      : { email: loginTexto.toLowerCase() };
 
-    const usuario = await Usuario.findOne(
-      usaCodigo
-        ? { codigoUsuario: loginTexto.toUpperCase() }
-        : { email: loginTexto.toLowerCase() }
-    )
+    const usuarios = await Usuario.find(filtroLogin)
       .select('+senhaHash')
       .populate('cursosCoordenados.cursoId');
 
-    if (!usuario || !usuario.ativo) {
+    let usuario = null;
+
+    for (const item of usuarios) {
+      if (item.ativo && await item.compararSenha(senha)) {
+        usuario = item;
+        break;
+      }
+    }
+
+    if (!usuario) {
       return res.status(401).json({ message: 'Credenciais inválidas.' });
     }
 
-    const senhaValida = await usuario.compararSenha(senha);
+    const usuariosMesmoEmail = await Usuario.find({
+      email: usuario.email,
+      ativo: true
+    })
+      .select('+senhaHash')
+      .populate('cursosCoordenados.cursoId');
 
-    if (!senhaValida) {
-      return res.status(401).json({ message: 'Credenciais inválidas.' });
-    }
+    usuario = aplicarAgregacaoPorEmail(usuario, usuariosMesmoEmail);
 
     const token = gerarToken(usuario);
 
@@ -141,13 +184,22 @@ async function login(req, res) {
 
 async function me(req, res) {
   try {
-    const usuario = await Usuario.findById(req.user._id)
-      .select('-senhaHash')
+    const usuarioBase = await Usuario.findById(req.user._id)
+      .select('+senhaHash')
       .populate('cursosCoordenados.cursoId');
 
-    if (!usuario || !usuario.ativo) {
+    if (!usuarioBase || !usuarioBase.ativo) {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
+
+    const usuariosMesmoEmail = await Usuario.find({
+      email: usuarioBase.email,
+      ativo: true
+    })
+      .select('+senhaHash')
+      .populate('cursosCoordenados.cursoId');
+
+    const usuario = aplicarAgregacaoPorEmail(usuarioBase, usuariosMesmoEmail);
 
     return res.status(200).json({
       usuario: usuarioPublico(usuario)
