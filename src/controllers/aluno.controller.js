@@ -244,8 +244,10 @@ async function dashboard(req, res) {
 async function listarMinhasAtividades(req, res) {
   try {
 
+    const alunoIds = req.alunoIds?.length ? req.alunoIds : [req.aluno._id];
+
     const filtro = {
-      alunoId: req.aluno._id
+      alunoId: { $in: alunoIds }
     };
 
     if (req.query.cursoId) {
@@ -463,7 +465,7 @@ async function submeterAtividade(req, res) {
 async function listarCertificados(req, res) {
   try {
     const certificados = await Certificado.find(
-      { aluno: req.aluno._id },
+      { aluno: { $in: req.alunoIds?.length ? req.alunoIds : [req.aluno._id] } },
       {
         nomeArquivo: 1,
         caminho: 1,
