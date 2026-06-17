@@ -58,7 +58,7 @@ async function criar(req, res) {
         descricao: 'Aluno cadastrado no sistema.',
         dadosNovos: aluno,
         ipOrigem: req.ip,
-        userAgent: req.get('User-Agent') || null
+        userAgent: req.get('User-Ag ent') || null
       });
     }
 
@@ -218,7 +218,7 @@ async function dashboard(req, res) {
     return res.status(200).json({
       aluno: {
         id: aluno._id,
-        nome: aluno.nome,
+        nome: aluno.nome,     
         email: aluno.email,
         matricula: aluno.matricula,
         matriculaAtiva: aluno.matriculaAtiva,

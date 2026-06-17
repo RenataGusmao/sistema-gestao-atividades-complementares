@@ -11,7 +11,7 @@ async function authAluno(req, res, next) {
       });
     }
 
-    const [, token] = authHeader.split(' ');
+    const [, token] = authHeader.split(' ');    
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
