@@ -9,7 +9,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
     throw new AppError('Token não informado.', 401);
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(' ')[1];   
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
