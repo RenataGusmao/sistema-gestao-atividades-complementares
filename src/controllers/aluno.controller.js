@@ -58,7 +58,7 @@ async function criar(req, res) {
         descricao: 'Aluno cadastrado no sistema.',
         dadosNovos: aluno,
         ipOrigem: req.ip,
-        userAgent: req.get('User-Ag ent') || null
+        userAgent: req.get('User-Agent') || null
       });
     }
 
@@ -226,7 +226,8 @@ async function dashboard(req, res) {
         cursos: (aluno.cursos || []).map((item) => ({
           _id: cursoIdValor(item.cursoId),
           nome: item.cursoId?.nome,
-          codigo: item.cursoId?.codigo
+          codigo: item.cursoId?.codigo,
+          cargaHorariaTotalComplementar: item.cursoId?.cargaHorariaTotalComplementar
         }))
       }
     });
@@ -393,6 +394,12 @@ async function submeterAtividade(req, res) {
       });
     }
 
+    if (String(categoria.curso) !== String(cursoAlunoId)) {
+      return res.status(422).json({
+        message: 'A categoria selecionada não pertence ao curso informado.'
+      });
+    }
+
     const uploads = await uploadArquivos(arquivos, {
       folderParts: ['alunos', req.aluno._id, cursoAlunoId]
     });
@@ -429,12 +436,6 @@ async function submeterAtividade(req, res) {
         storageProvider: anexo.storageProvider,
         storageKey: anexo.storageKey,
         resourceType: anexo.resourceType
-      });
-    }
-
-    if (String(categoria.curso) !== String(cursoAlunoId)) {
-      return res.status(422).json({
-        message: 'A categoria selecionada não pertence ao curso informado.'
       });
     }
 
@@ -484,9 +485,11 @@ async function listarCertificados(req, res) {
 async function listarMeusCursos(req, res) {
   try {
     const cursos = (req.aluno.cursos || []).map((item) => ({
-      _id: item.cursoId._id || item.cursoId,
-      nome: item.cursoId.nome,
-      codigo: item.cursoId.codigo
+      _id: cursoIdValor(item.cursoId),
+      id: cursoIdValor(item.cursoId),
+      nome: item.cursoId?.nome || 'Curso',
+      codigo: item.cursoId?.codigo || '',
+      cargaHorariaTotalComplementar: item.cursoId?.cargaHorariaTotalComplementar || 100
     }));
 
     return res.status(200).json(cursos);
