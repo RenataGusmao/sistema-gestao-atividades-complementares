@@ -13,6 +13,7 @@ router.post('/', protect, authorize('administrador', 'coordenador'), controller.
 router.get('/dashboard', authAluno, controller.dashboard);
 router.get('/atividades', authAluno, controller.listarMinhasAtividades);
 router.get('/categorias', authAluno, controller.listarCategoriasDisponiveis);
+router.get('/meus-cursos',authAluno,alunoController.listarMeusCursos);
 router.post('/atividades', authAluno, upload.fields([
   { name: 'anexos', maxCount: 5 },
   { name: 'certificado', maxCount: 1 }
